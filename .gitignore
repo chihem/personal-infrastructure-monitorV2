@@ -50,6 +50,9 @@ yarn-error.log*
 /.venv/
 /data/
 /backups/
+*.db
+*.db-shm
+*.db-wal
 /config.local.json
 /config.local.toml
 __pycache__/

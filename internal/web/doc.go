@@ -1,2 +1,2 @@
-// Package web will embed the compiled frontend in the Go release artifact.
+// Package web embeds and serves the frontend from the Go release artifact.
 package web

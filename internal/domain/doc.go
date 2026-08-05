@@ -1,2 +1,2 @@
-// Package domain will hold shared backend types and invariants.
+// Package domain defines shared backend value types and invariants.
 package domain

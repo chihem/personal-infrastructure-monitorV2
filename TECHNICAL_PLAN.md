@@ -218,7 +218,8 @@ Personal Infrastructure Monitor/
 ├── cmd/
 │   └── pim/                    # one application executable
 ├── internal/
-│   ├── api/                    # HTTP handlers, SSE, middleware, response contracts
+│   ├── api/                    # HTTP handlers, SSE, middleware
+│   │   └── contracts/          # versioned response and action contracts
 │   ├── app/                    # startup, shutdown, dependency wiring
 │   ├── audit/                  # audit domain and repository
 │   ├── backup/                 # backup manifests, safety copies, restore workflow
@@ -248,13 +249,15 @@ Personal Infrastructure Monitor/
 │   ├── package.json
 │   ├── package-lock.json
 │   ├── tsconfig.json
-│   └── vite.config.ts
+│   ├── vite.config.ts
+│   └── vitest.config.ts
 ├── configs/
 │   └── settings.example.toml
 ├── deploy/
 │   ├── systemd/
 │   └── firewall/               # reviewed examples, not an automatic destructive script
 ├── docs/
+│   ├── api-contracts.md
 │   ├── operations.md
 │   ├── recovery.md
 │   └── security-boundaries.md
@@ -262,12 +265,16 @@ Personal Infrastructure Monitor/
 │   ├── integration/
 │   ├── e2e/
 │   └── fixtures/
+├── scripts/
+│   └── quality.mjs             # cross-platform quality command implementation
 ├── PROJECT_CONTEXT.md
 ├── TECHNICAL_PLAN.md
 ├── go.mod
 ├── go.sum
-└── Makefile                    # small cross-platform task entry points only
+└── package.json                # discoverable cross-platform quality entry points
 ```
+
+The root npm commands are the approved equivalent of the originally proposed Makefile. They avoid requiring `make` on Windows while using the same command names and behavior on Windows and Linux.
 
 The existing prototype files should be preserved in Git history rather than mixed indefinitely with this target structure.
 

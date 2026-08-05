@@ -1,2 +1,2 @@
-// Package migrations will embed and apply ordered database migrations.
+// Package migrations embeds and applies ordered, transactional database migrations.
 package migrations

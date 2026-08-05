@@ -1,0 +1,20 @@
+{
+  "name": "@pim/workspace",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "quality": "node scripts/quality.mjs help",
+    "format": "node scripts/quality.mjs format",
+    "format:check": "node scripts/quality.mjs format-check",
+    "lint": "node scripts/quality.mjs lint",
+    "test": "node scripts/quality.mjs test",
+    "build": "node scripts/quality.mjs build",
+    "deps:review": "node scripts/quality.mjs deps-review",
+    "check": "node scripts/quality.mjs check",
+    "check:full": "node scripts/quality.mjs check-full"
+  }
+}

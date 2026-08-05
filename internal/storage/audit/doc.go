@@ -1,2 +1,2 @@
-// Package audit will own independent administrative-audit persistence.
+// Package audit opens the independent administrative-audit SQLite store.
 package audit

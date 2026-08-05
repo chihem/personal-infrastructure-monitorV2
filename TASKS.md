@@ -3,8 +3,8 @@
 Status: **Approved for task-by-task implementation**
 Based on: `PROJECT_CONTEXT.md` and `TECHNICAL_PLAN.md`
 Created: 2026-08-03
-Last updated: 2026-08-04
-Implementation progress: **SET-01 through SET-03 complete**
+Last updated: 2026-08-05
+Implementation progress: **SET-01 through FND-04 complete**
 
 ## Roadmap rules
 
@@ -54,7 +54,7 @@ Implementation progress: **SET-01 through SET-03 complete**
 - **Security considerations:** Inspect initial dependencies; prohibit install scripts where unnecessary; ensure `.env`, databases, backups, credentials, and logs are ignored.
 - **Estimated difficulty:** Easy.
 
-### SET-04 - Establish local quality commands
+### SET-04 - Establish local quality commands [Complete]
 
 - **Objective:** Provide one documented command set for formatting, static checks, unit tests, frontend tests, builds, and dependency review.
 - **Why it is needed:** A solo project stays maintainable when every task uses the same verification path.
@@ -68,7 +68,7 @@ Implementation progress: **SET-01 through SET-03 complete**
 
 ## Phase 2 - Minimum technical foundation
 
-### FND-01 - Define domain and API contracts
+### FND-01 - Define domain and API contracts [Complete]
 
 - **Objective:** Define versioned internal models and JSON contracts for measurements, freshness, health states, errors, paging, ranges, and actions.
 - **Why it is needed:** Stable contracts prevent backend and frontend features from inventing incompatible representations.
@@ -80,7 +80,7 @@ Implementation progress: **SET-01 through SET-03 complete**
 - **Security considerations:** Contracts must not expose filesystem secrets, environment values, raw stack traces, or unrestricted Docker objects.
 - **Estimated difficulty:** Medium.
 
-### FND-02 - Implement validated TOML configuration
+### FND-02 - Implement validated TOML configuration [Complete]
 
 - **Objective:** Load, validate, atomically reload, and retain the last valid application settings.
 - **Why it is needed:** Thresholds and operational limits must change safely without restarts, and invalid edits must not corrupt live behavior.
@@ -92,7 +92,7 @@ Implementation progress: **SET-01 through SET-03 complete**
 - **Security considerations:** Reject shell commands and arbitrary Docker endpoints; never allow configuration to weaken mandatory tailnet/security controls at runtime.
 - **Estimated difficulty:** Medium.
 
-### FND-03 - Create SQLite databases and migrations
+### FND-03 - Create SQLite databases and migrations [Complete]
 
 - **Objective:** Create separate WAL-mode `history.db` and `audit.db` stores with embedded, versioned migrations.
 - **Why it is needed:** All history, incidents, administrative records, backup, and recovery work depends on a reliable schema foundation.
@@ -104,7 +104,7 @@ Implementation progress: **SET-01 through SET-03 complete**
 - **Security considerations:** Create database files with restrictive ownership/modes; never place them inside the web root; avoid sensitive Docker/log content in schemas.
 - **Estimated difficulty:** Hard.
 
-### FND-04 - Build the application lifecycle and private HTTP server
+### FND-04 - Build the application lifecycle and private HTTP server [Complete]
 
 - **Objective:** Start and stop one Go service cleanly, serve a versioned API and embedded frontend directly on the Tailscale address, and handle shutdown safely.
 - **Why it is needed:** This is the executable foundation for every collector and browser feature.
@@ -596,6 +596,6 @@ Implementation progress: **SET-01 through SET-03 complete**
 
 ## Next task
 
-SET-01 through SET-03 are complete. The next and only task eligible to start is **SET-04 - Establish local quality commands**.
+SET-01 through SET-04 and FND-01 are complete. The next and only task eligible to start is **FND-02 - Implement validated TOML configuration**.
 
-Wait for the exact authorization: `START TASK SET-04`.
+Wait for the exact authorization: `START TASK FND-02`.

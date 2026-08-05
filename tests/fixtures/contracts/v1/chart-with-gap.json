@@ -1,0 +1,36 @@
+{
+  "resource": { "kind": "cpu", "id": "host-cpu", "displayName": "CPU" },
+  "metric": "cpu.overall.usage",
+  "range": {
+    "preset": "last_5m",
+    "start": "2026-08-04T11:55:00Z",
+    "end": "2026-08-04T12:00:00Z"
+  },
+  "points": [
+    {
+      "timestamp": "2026-08-04T11:55:00Z",
+      "state": "observed",
+      "measurement": {
+        "availability": "available",
+        "value": 35.5,
+        "unit": "percent",
+        "reasonCode": null
+      }
+    },
+    {
+      "timestamp": "2026-08-04T11:56:00Z",
+      "state": "observed",
+      "measurement": {
+        "availability": "unavailable",
+        "value": null,
+        "unit": "percent",
+        "reasonCode": "collector_error"
+      }
+    },
+    {
+      "timestamp": "2026-08-04T11:57:00Z",
+      "state": "gap",
+      "measurement": null
+    }
+  ]
+}

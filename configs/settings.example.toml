@@ -1,0 +1,51 @@
+# Infrastructure Monitor settings schema. This file contains no secrets.
+#
+# Thresholds, the non-privileged port, safe HTTP timeouts, and the default
+# language are administrator-editable. Values that express confirmed product
+# promises (one-minute collection, retention, backup timing, storage/log
+# ceilings, timezone, and supported languages) are validated at the values
+# below so a reload cannot silently weaken those promises.
+version = 1
+
+[thresholds.cpu]
+warning_percent = 85
+critical_percent = 95
+
+[thresholds.ram]
+warning_percent = 85
+critical_percent = 95
+
+[thresholds.filesystem]
+warning_percent = 90
+critical_percent = 95
+
+[collection]
+interval_seconds = 60
+stale_after_seconds = 120
+retention_days = 14
+
+[backup]
+interval_hours = 48
+retention_days = 14
+
+[storage]
+# 5 GiB. This is the combined application-data and backup ceiling.
+max_bytes = 5368709120
+
+[server]
+# The later HTTP-server task will always bind this port only on tailscale0.
+port = 8788
+read_header_timeout_seconds = 5
+read_timeout_seconds = 15
+write_timeout_seconds = 30
+idle_timeout_seconds = 60
+
+[display]
+timezone = "Africa/Tunis"
+supported_languages = ["en", "fr"]
+default_language = "en"
+
+[logs]
+initial_lines = 100
+# 5 MiB per open browser log viewer.
+browser_max_bytes = 5242880
