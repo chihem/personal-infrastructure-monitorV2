@@ -7,11 +7,14 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/api"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/config"
+	"github.com/chihem/personal-infrastructure-monitorV2/internal/observability"
+	"github.com/chihem/personal-infrastructure-monitorV2/internal/scheduler"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/storage"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/storage/audit"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/storage/history"
@@ -34,10 +37,14 @@ type Options struct {
 	AuditPath     string
 
 	ShutdownTimeout time.Duration
+	Logger          *observability.Logger
 
-	listen      listenerFactory
-	openHistory databaseOpener
-	openAudit   databaseOpener
+	listen           listenerFactory
+	openHistory      databaseOpener
+	openAudit        databaseOpener
+	now              func() time.Time
+	databaseSize     databaseSizer
+	collectionStatus collectionStatusProvider
 }
 
 func DefaultOptions() Options {
@@ -47,6 +54,9 @@ func DefaultOptions() Options {
 		HistoryPath:     storage.DefaultHistoryPath,
 		AuditPath:       storage.DefaultAuditPath,
 		ShutdownTimeout: defaultShutdownTime,
+		Logger:          observability.New(os.Stdout, os.Stderr),
+		now:             time.Now,
+		databaseSize:    sizeDatabaseFiles,
 		listen:          ListenTailscaleIPv4,
 		openHistory: func(ctx context.Context, path string) (io.Closer, error) {
 			return history.Open(ctx, path)
@@ -59,18 +69,31 @@ func DefaultOptions() Options {
 
 // Run wires the production application and blocks until the context is
 // cancelled or the HTTP server exits unexpectedly.
-func Run(ctx context.Context, options Options) error {
+func Run(ctx context.Context, options Options) (runErr error) {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if err := options.prepare(); err != nil {
 		return err
 	}
+	startedAt := options.now().UTC()
+	_ = options.Logger.Info(observability.Event{Component: "app", Code: "app.starting"})
+	defer func() {
+		duration := options.now().Sub(startedAt)
+		if duration < 0 {
+			duration = 0
+		}
+		if runErr != nil {
+			_ = options.Logger.Error(observability.Event{Component: "app", Code: "app.run.failed", Duration: &duration})
+			return
+		}
+		_ = options.Logger.Info(observability.Event{Component: "app", Code: "app.stopped", Duration: &duration})
+	}()
 
 	settingsManager, err := config.NewManager(config.Paths{
 		Active:    options.SettingsPath,
 		LastValid: options.LastValidPath,
-	})
+	}, config.WithEventSink(options.configurationEventSink()))
 	if err != nil {
 		return fmt.Errorf("create settings manager: %w", err)
 	}
@@ -99,15 +122,16 @@ func Run(ctx context.Context, options Options) error {
 	}
 
 	maintenance := &MaintenanceState{}
-	health := func() api.FoundationHealth {
-		return api.FoundationHealth{
-			Maintenance:              maintenance.Active(),
-			HistoryDatabaseAvailable: true,
-			AuditDatabaseAvailable:   auditErr == nil,
-			ConfigurationState:       string(settingsManager.Status().State),
-		}
+	status := statusSource{
+		startedAt: startedAt, now: options.now, maintenance: maintenance,
+		configuration: settingsManager.Status,
+		historyPath:   options.HistoryPath, auditPath: options.AuditPath,
+		historyAvailable: true, auditAvailable: auditErr == nil,
+		collection: options.collectionStatus, databaseSize: options.databaseSize,
 	}
-	handler := api.NewHandler(web.Handler(), health)
+	handler := api.NewHandlerWithOptions(api.HandlerOptions{
+		WebHandler: web.Handler(), Status: status.snapshot, Logger: options.Logger,
+	})
 	server := api.NewServer(listener.Addr().String(), settings.Server, handler)
 
 	watchContext, stopWatcher := context.WithCancel(ctx)
@@ -123,6 +147,7 @@ func Run(ctx context.Context, options Options) error {
 		stopWatcher:     stopWatcher,
 		shutdownTimeout: options.ShutdownTimeout,
 	}
+	_ = options.Logger.Info(observability.Event{Component: "app", Code: "app.ready"})
 	return runtime.serve(ctx)
 }
 
@@ -144,8 +169,31 @@ func (options *Options) prepare() error {
 	if options.openAudit == nil {
 		options.openAudit = defaults.openAudit
 	}
+	if options.Logger == nil {
+		options.Logger = defaults.Logger
+	}
+	if options.now == nil {
+		options.now = defaults.now
+	}
+	if options.databaseSize == nil {
+		options.databaseSize = defaults.databaseSize
+	}
 	return nil
 }
+
+func (options Options) configurationEventSink() config.EventSink {
+	return func(event config.ReloadEvent) {
+		logEvent := observability.Event{Component: "config", Code: "config.reload." + string(event.Outcome)}
+		switch event.Outcome {
+		case config.ReloadRejected, config.ReloadUnavailable, config.ReloadWatchError:
+			_ = options.Logger.Warning(logEvent)
+		default:
+			_ = options.Logger.Info(logEvent)
+		}
+	}
+}
+
+var _ collectionStatusProvider = (*scheduler.Service)(nil)
 
 type runtime struct {
 	server          *http.Server

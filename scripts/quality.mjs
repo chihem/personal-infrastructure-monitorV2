@@ -163,8 +163,17 @@ function build() {
   mkdirSync(outputDirectory, { recursive: true });
   const binary = join(outputDirectory, isWindows ? "pim.exe" : "pim");
 
-  run(goCommand, ["build", "-trimpath", "-o", binary, "./cmd/pim"]);
   runNpm(["run", "build"], { cwd: web });
+  run(goCommand, ["test", "-tags", "production", "./internal/web"]);
+  run(goCommand, [
+    "build",
+    "-tags",
+    "production",
+    "-trimpath",
+    "-o",
+    binary,
+    "./cmd/pim",
+  ]);
 }
 
 function reviewDependencies() {

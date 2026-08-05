@@ -15,6 +15,7 @@ import (
 
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/api"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/config"
+	"github.com/chihem/personal-infrastructure-monitorV2/internal/observability"
 )
 
 func TestRunStartsServesAndStops(t *testing.T) {
@@ -31,6 +32,7 @@ func TestRunStartsServesAndStops(t *testing.T) {
 		HistoryPath:     filepath.Join(root, "state", "history.db"),
 		AuditPath:       filepath.Join(root, "state", "audit.db"),
 		ShutdownTimeout: 2 * time.Second,
+		Logger:          observability.Discard(),
 		listen: func(context.Context, int) (net.Listener, error) {
 			listener, err := net.Listen("tcp4", "127.0.0.1:0")
 			if err == nil {
@@ -148,6 +150,7 @@ func TestRunContinuesWhenAuditDatabaseIsUnavailable(t *testing.T) {
 		HistoryPath:     filepath.Join(root, "state", "history.db"),
 		AuditPath:       filepath.Join(root, "state", "audit.db"),
 		ShutdownTimeout: 2 * time.Second,
+		Logger:          observability.Discard(),
 		listen: func(context.Context, int) (net.Listener, error) {
 			listener, err := net.Listen("tcp4", "127.0.0.1:0")
 			if err == nil {
@@ -165,13 +168,13 @@ func TestRunContinuesWhenAuditDatabaseIsUnavailable(t *testing.T) {
 	listener := waitFor(t, listenerReady, "listener")
 
 	client := &http.Client{Timeout: 2 * time.Second}
-	response := requestUntilReady(t, client, "http://"+listener.Addr().String()+"/api/v1/health")
+	response := requestUntilReady(t, client, "http://"+listener.Addr().String()+"/api/v1/status")
 	body, err := io.ReadAll(response.Body)
 	response.Body.Close()
 	if err != nil {
 		t.Fatalf("read health response: %v", err)
 	}
-	if !strings.Contains(string(body), `"status":"degraded"`) || !strings.Contains(string(body), `"auditDatabaseAvailable":false`) {
+	if !strings.Contains(string(body), `"state":"degraded"`) || !strings.Contains(string(body), `"auditDatabase":{"state":"unavailable"`) {
 		t.Fatalf("health response = %s", body)
 	}
 

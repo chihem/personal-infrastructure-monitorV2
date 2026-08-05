@@ -1,12 +1,12 @@
 # API Contract v1
 
-Status: **Defined for FND-01**
+Status: **Defined through FND-07**
 Wire version: `v1`
 Transport timestamps: RFC 3339 in UTC
 
 ## Scope
 
-This document defines the data boundary shared by the Go backend and TypeScript frontend. It does not create HTTP routes, database tables, collectors, Docker calls, or UI screens. Those are later roadmap tasks.
+This document defines the data boundary shared by the Go backend and TypeScript frontend. FND-07 exposes the operational contracts at the private routes listed below. Monitoring-resource routes, real collectors, Docker calls, and data-backed UI screens remain later roadmap tasks.
 
 The Go contract is under `internal/api/contracts/`. The TypeScript mirror and its safe runtime parsers are under `web/src/api/`. Shared examples are under `tests/fixtures/contracts/v1/`.
 
@@ -20,7 +20,24 @@ Every bounded JSON response contains:
 - `data`: the successful payload, otherwise `null`.
 - `error`: a structured error, otherwise `null`.
 
-Exactly one of `data` and `error` is non-null. HTTP routes will live under `/api/v1` when the server is implemented.
+Exactly one of `data` and `error` is non-null. Implemented API routes live under `/api/v1`.
+
+## Operational self-status
+
+The private server currently exposes:
+
+| Path | Successful response | Failure behavior |
+| --- | --- | --- |
+| `/api/v1/health/live` | `200` with `alive: true` while the process can serve HTTP | No response when the process or listener is down |
+| `/api/v1/health/ready` | `200` when required dependencies are usable | `503` during maintenance or when configuration/history storage is unavailable |
+| `/api/v1/health` | Compatibility alias for readiness | Same as `/api/v1/health/ready` |
+| `/api/v1/status` | `200` with the validated operational snapshot | `500` with a safe API error if an invalid snapshot reaches the handler |
+
+Readiness requires a usable current or last-valid configuration, an available history database, and inactive maintenance mode. Audit-storage failure, use of previous settings, collectors that have not started, and unchecked Docker connectivity produce honest degraded or placeholder states without making read-only service unready.
+
+Operational state is one of `ok`, `degraded`, `maintenance`, or `not_ready`. Dependency fields use only `available`, `unavailable`, `not_started`, `not_implemented`, or `not_checked` where applicable. Database sizes may be `null` when they cannot be read safely. Collection timing is reported only after a completed run, and its duration must match its UTC start and finish timestamps.
+
+All served envelopes and response headers carry the server-generated request ID. Incoming `X-Request-ID` values are discarded rather than trusted.
 
 ## Honest measurement states
 

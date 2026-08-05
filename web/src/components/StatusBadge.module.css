@@ -1,0 +1,30 @@
+.badge {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.65rem;
+  color: var(--status-color);
+  border: 1px solid color-mix(in srgb, var(--status-color) 42%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--status-color) 12%, transparent);
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+}
+
+.badge[data-state="healthy"] {
+  --status-color: var(--color-healthy);
+}
+
+.badge[data-state="warning"] {
+  --status-color: var(--color-warning);
+}
+
+.badge[data-state="critical"] {
+  --status-color: var(--color-critical);
+}
+
+.badge[data-state="unknown"] {
+  --status-color: var(--color-unknown);
+}

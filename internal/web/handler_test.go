@@ -18,7 +18,6 @@ func TestEmbeddedWebHandler(t *testing.T) {
 		wantBody   string
 	}{
 		{name: "index", method: http.MethodGet, path: "/", wantStatus: http.StatusOK, wantBody: "Infrastructure Monitor"},
-		{name: "embedded stylesheet", method: http.MethodGet, path: "/app.css", wantStatus: http.StatusOK, wantBody: "background: #0d1117"},
 		{name: "SPA fallback", method: http.MethodGet, path: "/cpu", wantStatus: http.StatusOK, wantBody: "Infrastructure Monitor"},
 		{name: "missing asset", method: http.MethodGet, path: "/missing.js", wantStatus: http.StatusNotFound},
 		{name: "write method rejected", method: http.MethodPost, path: "/", wantStatus: http.StatusMethodNotAllowed},

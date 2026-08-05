@@ -1,19 +1,15 @@
 package web
 
 import (
-	"embed"
 	"io/fs"
 	"net/http"
 	"path"
 	"strings"
 )
 
-//go:embed static/*
-var embeddedFiles embed.FS
-
 // Handler returns a same-origin SPA handler backed only by embedded files.
 func Handler() http.Handler {
-	staticFiles, err := fs.Sub(embeddedFiles, "static")
+	staticFiles, err := fs.Sub(embeddedFiles, embeddedRoot)
 	if err != nil {
 		panic("embedded web files are unavailable: " + err.Error())
 	}

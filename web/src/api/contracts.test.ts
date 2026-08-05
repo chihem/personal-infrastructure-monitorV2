@@ -7,6 +7,7 @@ import {
   ContractValidationError,
   parseChartSeries,
   parseMonitoringResponse,
+  parseOperationalStatusResponse,
 } from "./contracts";
 
 const fixtures = [
@@ -79,6 +80,68 @@ describe("chart contract example", () => {
     };
 
     expect(() => parseChartSeries(fixture)).toThrow(ContractValidationError);
+  });
+});
+
+describe("operational status contract", () => {
+  const response: Record<string, any> = {
+    apiVersion: "v1",
+    requestId: "request-001",
+    generatedAt: "2026-08-05T12:00:00Z",
+    data: {
+      state: "degraded",
+      uptimeSeconds: 15,
+      maintenance: false,
+      configurationState: "valid",
+      historyDatabase: { state: "available", sizeBytes: 4096 },
+      auditDatabase: { state: "unavailable", sizeBytes: null },
+      collection: {
+        state: "not_started",
+        inProgress: false,
+        lastRun: null,
+        lastSuccessfulAt: null,
+      },
+      backupState: "not_implemented",
+      dockerConnectivity: "not_checked",
+    },
+    error: null,
+  };
+
+  it("parses honest foundation placeholders", () => {
+    expect(
+      parseOperationalStatusResponse(structuredClone(response)).data,
+    ).toMatchObject({
+      state: "degraded",
+      backupState: "not_implemented",
+      dockerConnectivity: "not_checked",
+    });
+  });
+
+  it("rejects a not-started collector with fabricated run state", () => {
+    const invalid = structuredClone(response);
+    invalid.data.collection.inProgress = true;
+
+    expect(() => parseOperationalStatusResponse(invalid)).toThrow(
+      ContractValidationError,
+    );
+  });
+
+  it("rejects an unavailable database with a size", () => {
+    const invalid = structuredClone(response);
+    invalid.data.auditDatabase.sizeBytes = 1024;
+
+    expect(() => parseOperationalStatusResponse(invalid)).toThrow(
+      ContractValidationError,
+    );
+  });
+
+  it("rejects a ready state when a required dependency is unavailable", () => {
+    const invalid = structuredClone(response);
+    invalid.data.historyDatabase = { state: "unavailable", sizeBytes: null };
+
+    expect(() => parseOperationalStatusResponse(invalid)).toThrow(
+      ContractValidationError,
+    );
   });
 });
 

@@ -24,7 +24,7 @@ The workspace already contains a tracked Python/Next/Vinext/Cloudflare Sites pro
 | Frontend packaging | Go `embed` | Packages the compiled frontend into the Go executable, giving one versioned application artifact and an atomic frontend/backend rollout. |
 | Frontend | React + TypeScript | React fits a stateful dashboard with several pages, controls, charts, and live-log behavior. TypeScript is already confirmed and helps keep API/UI contracts explicit. |
 | Frontend build | Vite | A focused SPA build tool with an official React/TypeScript path. Server-side rendering and Next.js are unnecessary for a private dashboard with no SEO requirement. |
-| Routing | React Router | Provides clear routes for overview, CPU, RAM, disks, containers, events, audit, exports, backups, and recovery. |
+| Routing | Wouter | Provides the small fixed SPA route set with standard links and History API behavior. React Router was replaced during FND-05 because every compatible published line was covered by a high-severity npm advisory on 2026-08-05; Wouter passed the locked dependency audit. |
 | Server-state handling | TanStack Query | Manages API fetching, one-minute refresh, retries, cache invalidation after actions, stale UI state, and request cancellation without a general-purpose state store. |
 | Charts | Apache ECharts | Canvas rendering is practical for thousands of time-series points and mobile use. Provide text summaries because chart ARIA support alone is insufficient. |
 | Localization | i18next + react-i18next | Supports complete English/French resources, browser-language detection, runtime switching, plurals, and formatting. |
@@ -654,6 +654,7 @@ Never copy a live WAL database file by itself; committed data can still reside i
 15. **Mobile target:** test current Chrome and Firefox on Android.
 16. **Dynamic CPU topology:** detect the logical CPU count at runtime.
 17. **One-release rollback compatibility:** keep migrations backward-compatible for one release when practical; otherwise restore the pre-deploy backup before binary rollback.
+18. **Audited lightweight routing:** use Wouter for the fixed client route set; do not restore React Router until a compatible version clears the locked high-severity dependency audit.
 
 ## Questions requiring user approval
 

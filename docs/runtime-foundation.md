@@ -9,7 +9,7 @@ FND-04 provides the executable base for the Infrastructure Monitor. It does not 
 3. Open a `tcp4` listener on that exact address and the configured non-privileged port.
 4. Open `history.db`; startup stops if this mandatory store cannot be opened.
 5. Open `audit.db`; if it is unavailable, read-only service startup continues and health reports a degraded state. Future state-changing actions must reject requests while audit storage is unavailable.
-6. Start the settings watcher and serve the embedded UI plus `/api/v1` routes.
+6. Start the settings watcher and serve the embedded UI plus `/api/v1` routes with server-generated request IDs and panic recovery.
 
 Startup never falls back to `0.0.0.0`, `::`, another interface, or localhost. The production listener also verifies that its actual socket address matches the discovered Tailscale IPv4 address and configured port.
 
@@ -21,12 +21,14 @@ Startup never falls back to `0.0.0.0`, `::`, another interface, or localhost. Th
 
 | Path | Purpose |
 | --- | --- |
-| `/` and extensionless UI routes | Embedded FND-04 placeholder page |
-| `/app.css` | Embedded placeholder style |
-| `/api/v1/health` | Temporary foundation health response |
+| `/` and extensionless UI routes | Embedded React application shell |
+| `/api/v1/health/live` | Process liveness; returns `200` while HTTP can be served |
+| `/api/v1/health/ready` | Required-dependency readiness; returns `200` or `503` |
+| `/api/v1/health` | Compatibility alias for readiness |
+| `/api/v1/status` | Bounded internal operational snapshot |
 | Other `/api/` paths | JSON not-found response |
 
-The placeholder health response reports whether maintenance mode is active, whether both databases opened, and the configuration manager's current state. FND-07 will expand operational liveness/readiness behavior.
+Readiness requires usable configuration, available history storage, and inactive maintenance mode. Audit-storage failure degrades read-only operation but does not make it unready. The status snapshot also reports database sizes when safely readable, collector timing when a run exists, and explicit `not_started`, `not_checked`, or `not_implemented` placeholders where later foundation work has not been wired.
 
 Shared HTTP safeguards currently include:
 
@@ -36,8 +38,12 @@ Shared HTTP safeguards currently include:
 - same-origin embedded assets with no permissive CORS behavior;
 - Content Security Policy, frame denial, nosniff, and no-referrer headers;
 - removal of `Forwarded`, `X-Forwarded-*`, and `X-Real-IP` before application handlers run.
+- one server-generated request ID in the response header, API envelope, request context, and matching operational log record;
+- panic recovery with a generic client error and no panic value or stack trace in the response or structured log.
 
 Host/Origin validation, CSRF protection, action confirmation intents, and rate limits belong to SEC-01 before state-changing or expensive endpoints are released.
+
+Operational logs use an allowlisted JSON schema and write informational events to stdout and warnings/errors to stderr. They intentionally exclude arbitrary messages, error strings, headers, tokens, environment dumps, raw addresses, and container logs. See [`observability.md`](observability.md).
 
 ## Configuration behavior
 

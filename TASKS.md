@@ -4,7 +4,7 @@ Status: **Approved for task-by-task implementation**
 Based on: `PROJECT_CONTEXT.md` and `TECHNICAL_PLAN.md`
 Created: 2026-08-03
 Last updated: 2026-08-05
-Implementation progress: **SET-01 through FND-04 complete**
+Implementation progress: **SET-01 through FND-07 complete**
 
 ## Roadmap rules
 
@@ -116,7 +116,7 @@ Implementation progress: **SET-01 through FND-04 complete**
 - **Security considerations:** Never fall back to `0.0.0.0` or `::`; set conservative HTTP limits from the start; ignore forwarded-client headers.
 - **Estimated difficulty:** Medium.
 
-### FND-05 - Build the responsive bilingual UI shell
+### FND-05 - Build the responsive bilingual UI shell [Complete]
 
 - **Objective:** Deliver the dark responsive application shell, routing, English/French switching, status primitives, and API-query foundation.
 - **Why it is needed:** Feature pages need a consistent accessible presentation layer before data-specific UI work begins.
@@ -128,7 +128,7 @@ Implementation progress: **SET-01 through FND-04 complete**
 - **Security considerations:** Store only language preference locally; render server text safely; introduce no frontend secret variables.
 - **Estimated difficulty:** Medium.
 
-### FND-06 - Implement scheduler and collector boundaries
+### FND-06 - Implement scheduler and collector boundaries [Complete]
 
 - **Objective:** Run cancellable one-minute collection cycles through provider interfaces without overlapping runs.
 - **Why it is needed:** All monitoring features require predictable scheduling, partial results, and testable collectors.
@@ -140,7 +140,7 @@ Implementation progress: **SET-01 through FND-04 complete**
 - **Security considerations:** Bound concurrency and duration to prevent resource exhaustion; do not execute shell commands from collector inputs.
 - **Estimated difficulty:** Hard.
 
-### FND-07 - Add operational logging and self-status
+### FND-07 - Add operational logging and self-status [Complete]
 
 - **Objective:** Emit safe structured logs and expose private liveness, readiness, and internal-status information.
 - **Why it is needed:** Failures must be diagnosable without leaking monitored application data.
@@ -596,6 +596,6 @@ Implementation progress: **SET-01 through FND-04 complete**
 
 ## Next task
 
-SET-01 through SET-04 and FND-01 are complete. The next and only task eligible to start is **FND-02 - Implement validated TOML configuration**.
+SET-01 through SET-04 and FND-01 through FND-07 are complete. The next and only task eligible to start is **CORE-01 - Implement history queries and rolling retention**.
 
-Wait for the exact authorization: `START TASK FND-02`.
+Wait for the exact authorization: `START TASK CORE-01`.

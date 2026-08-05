@@ -360,6 +360,60 @@ export interface MonitoringSnapshot {
 
 export type MonitoringResponse = APIResponse<MonitoringSnapshot>;
 
+export type OperationalState = "ok" | "degraded" | "maintenance" | "not_ready";
+export type DependencyState =
+  | "available"
+  | "unavailable"
+  | "not_started"
+  | "not_implemented"
+  | "not_checked";
+export type CollectionStatus =
+  "succeeded" | "partial" | "failed" | "not_attempted";
+
+export interface DatabaseOperationalStatus {
+  state: "available" | "unavailable";
+  sizeBytes: number | null;
+}
+
+export interface CollectionRunOperationalStatus {
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  status: Exclude<CollectionStatus, "not_attempted">;
+}
+
+export interface CollectionOperationalStatus {
+  state: "available" | "unavailable" | "not_started";
+  inProgress: boolean;
+  lastRun: CollectionRunOperationalStatus | null;
+  lastSuccessfulAt: string | null;
+}
+
+export interface OperationalStatusSnapshot {
+  state: OperationalState;
+  uptimeSeconds: number;
+  maintenance: boolean;
+  configurationState: "valid" | "using_previous" | "unavailable";
+  historyDatabase: DatabaseOperationalStatus;
+  auditDatabase: DatabaseOperationalStatus;
+  collection: CollectionOperationalStatus;
+  backupState: "available" | "unavailable" | "not_implemented";
+  dockerConnectivity: "available" | "unavailable" | "not_checked";
+}
+
+export interface LivenessStatus {
+  alive: true;
+}
+
+export interface ReadinessStatus {
+  ready: boolean;
+  maintenance: boolean;
+  configurationState: "valid" | "using_previous" | "unavailable";
+  historyDatabaseAvailable: boolean;
+}
+
+export type OperationalStatusResponse = APIResponse<OperationalStatusSnapshot>;
+
 export type ChartPoint =
   | { timestamp: string; state: "observed"; measurement: Metric }
   | { timestamp: string; state: "gap"; measurement: null };
@@ -538,6 +592,20 @@ export function parseMonitoringResponse(value: unknown): MonitoringResponse {
   return value as MonitoringResponse;
 }
 
+export function parseOperationalStatusResponse(
+  value: unknown,
+): OperationalStatusResponse {
+  const problems: string[] = [];
+  const data = validateResponseEnvelope(value, problems);
+  if (data !== undefined) {
+    validateOperationalStatus(data, "data", problems);
+  }
+  if (problems.length > 0) {
+    throw new ContractValidationError(problems);
+  }
+  return value as OperationalStatusResponse;
+}
+
 export function validateMonitoringResponse(value: unknown): string[] {
   const problems: string[] = [];
   if (!isRecord(value)) {
@@ -654,6 +722,216 @@ function validateSnapshotResource(
   }
   validateResource(value.resource, `${path}.resource`, kind, problems);
   validateFreshness(value.freshness, `${path}.freshness`, problems);
+}
+
+function validateResponseEnvelope(
+  value: unknown,
+  problems: string[],
+): unknown | undefined {
+  if (!isRecord(value)) {
+    problems.push("response must be an object");
+    return undefined;
+  }
+  if (value.apiVersion !== API_VERSION) {
+    problems.push("apiVersion must be v1");
+  }
+  validateNonEmptyString(value.requestId, "requestId", problems);
+  validateUTC(value.generatedAt, "generatedAt", problems);
+  const hasData = value.data !== null && value.data !== undefined;
+  const hasError = value.error !== null && value.error !== undefined;
+  if (hasData === hasError) {
+    problems.push("exactly one of data or error must be present");
+    return undefined;
+  }
+  if (hasError) {
+    validateAPIError(value.error, "error", problems);
+    return undefined;
+  }
+  return value.data;
+}
+
+function validateOperationalStatus(
+  value: unknown,
+  path: string,
+  problems: string[],
+) {
+  if (!isRecord(value)) {
+    problems.push(`${path} must be an object`);
+    return;
+  }
+  if (
+    !new Set(["ok", "degraded", "maintenance", "not_ready"]).has(
+      String(value.state),
+    )
+  ) {
+    problems.push(`${path}.state is invalid`);
+  }
+  validateNonNegativeInteger(
+    value.uptimeSeconds,
+    `${path}.uptimeSeconds`,
+    problems,
+  );
+  if (typeof value.maintenance !== "boolean") {
+    problems.push(`${path}.maintenance must be boolean`);
+  }
+  if (
+    !new Set(["valid", "using_previous", "unavailable"]).has(
+      String(value.configurationState),
+    )
+  ) {
+    problems.push(`${path}.configurationState is invalid`);
+  }
+  validateOperationalDatabase(
+    value.historyDatabase,
+    `${path}.historyDatabase`,
+    problems,
+  );
+  validateOperationalDatabase(
+    value.auditDatabase,
+    `${path}.auditDatabase`,
+    problems,
+  );
+  validateOperationalCollection(
+    value.collection,
+    `${path}.collection`,
+    problems,
+  );
+  if (
+    !new Set(["available", "unavailable", "not_implemented"]).has(
+      String(value.backupState),
+    )
+  ) {
+    problems.push(`${path}.backupState is invalid`);
+  }
+  if (
+    !new Set(["available", "unavailable", "not_checked"]).has(
+      String(value.dockerConnectivity),
+    )
+  ) {
+    problems.push(`${path}.dockerConnectivity is invalid`);
+  }
+
+  const requiredUnavailable =
+    value.configurationState === "unavailable" ||
+    (isRecord(value.historyDatabase) &&
+      value.historyDatabase.state === "unavailable");
+  if (typeof value.maintenance === "boolean") {
+    let expectedState: OperationalState = "ok";
+    if (value.maintenance) {
+      expectedState = "maintenance";
+    } else if (requiredUnavailable) {
+      expectedState = "not_ready";
+    } else if (
+      value.configurationState !== "valid" ||
+      (isRecord(value.auditDatabase) &&
+        value.auditDatabase.state !== "available") ||
+      (isRecord(value.collection) && value.collection.state !== "available") ||
+      value.backupState !== "available" ||
+      value.dockerConnectivity !== "available"
+    ) {
+      expectedState = "degraded";
+    }
+    if (value.state !== expectedState) {
+      problems.push(
+        `${path}.state does not match dependency state ${expectedState}`,
+      );
+    }
+  }
+}
+
+function validateOperationalDatabase(
+  value: unknown,
+  path: string,
+  problems: string[],
+) {
+  if (!isRecord(value)) {
+    problems.push(`${path} must be an object`);
+    return;
+  }
+  if (value.state !== "available" && value.state !== "unavailable") {
+    problems.push(`${path}.state is invalid`);
+  }
+  if (value.sizeBytes !== null) {
+    validateNonNegativeInteger(value.sizeBytes, `${path}.sizeBytes`, problems);
+  }
+  if (value.state === "unavailable" && value.sizeBytes !== null) {
+    problems.push(`${path}.unavailable cannot report a size`);
+  }
+}
+
+function validateOperationalCollection(
+  value: unknown,
+  path: string,
+  problems: string[],
+) {
+  if (!isRecord(value)) {
+    problems.push(`${path} must be an object`);
+    return;
+  }
+  if (
+    !new Set(["available", "unavailable", "not_started"]).has(
+      String(value.state),
+    )
+  ) {
+    problems.push(`${path}.state is invalid`);
+  }
+  if (typeof value.inProgress !== "boolean") {
+    problems.push(`${path}.inProgress must be boolean`);
+  }
+  if (value.lastRun !== null) {
+    if (!isRecord(value.lastRun)) {
+      problems.push(`${path}.lastRun must be an object or null`);
+    } else {
+      validateUTC(
+        value.lastRun.startedAt,
+        `${path}.lastRun.startedAt`,
+        problems,
+      );
+      validateUTC(
+        value.lastRun.finishedAt,
+        `${path}.lastRun.finishedAt`,
+        problems,
+      );
+      validateNonNegativeInteger(
+        value.lastRun.durationMs,
+        `${path}.lastRun.durationMs`,
+        problems,
+      );
+      if (
+        typeof value.lastRun.startedAt === "string" &&
+        typeof value.lastRun.finishedAt === "string" &&
+        typeof value.lastRun.durationMs === "number"
+      ) {
+        const expectedDuration =
+          Date.parse(value.lastRun.finishedAt) -
+          Date.parse(value.lastRun.startedAt);
+        if (
+          Number.isFinite(expectedDuration) &&
+          value.lastRun.durationMs !== expectedDuration
+        ) {
+          problems.push(`${path}.lastRun.durationMs must match timestamps`);
+        }
+      }
+      if (
+        !new Set(["succeeded", "partial", "failed"]).has(
+          String(value.lastRun.status),
+        )
+      ) {
+        problems.push(`${path}.lastRun.status is invalid`);
+      }
+    }
+  }
+  if (value.lastSuccessfulAt !== null) {
+    validateUTC(value.lastSuccessfulAt, `${path}.lastSuccessfulAt`, problems);
+  }
+  if (
+    value.state === "not_started" &&
+    (value.inProgress !== false ||
+      value.lastRun !== null ||
+      value.lastSuccessfulAt !== null)
+  ) {
+    problems.push(`${path}.not_started cannot contain run state`);
+  }
 }
 
 function validateResource(
@@ -882,6 +1160,16 @@ function validateNonEmptyString(
 ) {
   if (typeof value !== "string" || value.trim() === "") {
     problems.push(`${path} must be a non-empty string`);
+  }
+}
+
+function validateNonNegativeInteger(
+  value: unknown,
+  path: string,
+  problems: string[],
+) {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    problems.push(`${path} must be a non-negative safe integer`);
   }
 }
 
