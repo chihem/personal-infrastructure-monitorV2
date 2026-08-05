@@ -1,2 +1,2 @@
-// Package api will expose the versioned HTTP API and live streams.
+// Package api exposes the versioned HTTP API and its shared HTTP safeguards.
 package api

@@ -1,0 +1,227 @@
+{
+  "apiVersion": "v1",
+  "requestId": "request-stale-001",
+  "generatedAt": "2026-08-04T12:05:30Z",
+  "data": {
+    "freshness": {
+      "state": "stale",
+      "observedAt": "2026-08-04T12:02:00Z",
+      "lastSuccessfulAt": "2026-08-04T12:02:00Z"
+    },
+    "health": {
+      "states": ["unknown"],
+      "activeWarningCount": 0,
+      "causes": [
+        {
+          "code": "collection_stale",
+          "state": "unknown",
+          "resource": { "kind": "host", "id": "host", "displayName": "VPS" },
+          "startedAt": "2026-08-04T12:04:00Z",
+          "messageKey": "health.collectionStale"
+        }
+      ]
+    },
+    "cpu": {
+      "resource": { "kind": "cpu", "id": "host-cpu", "displayName": "CPU" },
+      "freshness": {
+        "state": "stale",
+        "observedAt": "2026-08-04T12:02:00Z",
+        "lastSuccessfulAt": "2026-08-04T12:02:00Z"
+      },
+      "overall": {
+        "availability": "available",
+        "value": 48,
+        "unit": "percent",
+        "reasonCode": null
+      },
+      "cores": [
+        {
+          "index": 0,
+          "usage": {
+            "availability": "available",
+            "value": 48,
+            "unit": "percent",
+            "reasonCode": null
+          }
+        }
+      ],
+      "load": {
+        "oneMinute": {
+          "availability": "available",
+          "value": 0.7,
+          "unit": "load",
+          "reasonCode": null
+        },
+        "fiveMinutes": {
+          "availability": "available",
+          "value": 0.6,
+          "unit": "load",
+          "reasonCode": null
+        },
+        "fifteenMinutes": {
+          "availability": "available",
+          "value": 0.5,
+          "unit": "load",
+          "reasonCode": null
+        }
+      },
+      "logicalCpuCount": 1
+    },
+    "memory": {
+      "resource": {
+        "kind": "memory",
+        "id": "host-memory",
+        "displayName": "Memory"
+      },
+      "freshness": {
+        "state": "stale",
+        "observedAt": "2026-08-04T12:02:00Z",
+        "lastSuccessfulAt": "2026-08-04T12:02:00Z"
+      },
+      "total": {
+        "availability": "available",
+        "value": 11811160064,
+        "unit": "bytes",
+        "reasonCode": null
+      },
+      "used": {
+        "availability": "available",
+        "value": 4294967296,
+        "unit": "bytes",
+        "reasonCode": null
+      },
+      "available": {
+        "availability": "available",
+        "value": 7516192768,
+        "unit": "bytes",
+        "reasonCode": null
+      },
+      "free": {
+        "availability": "available",
+        "value": 1610612736,
+        "unit": "bytes",
+        "reasonCode": null
+      },
+      "cached": {
+        "availability": "available",
+        "value": 4831838208,
+        "unit": "bytes",
+        "reasonCode": null
+      },
+      "buffered": {
+        "availability": "available",
+        "value": 268435456,
+        "unit": "bytes",
+        "reasonCode": null
+      },
+      "usage": {
+        "availability": "available",
+        "value": 36.4,
+        "unit": "percent",
+        "reasonCode": null
+      },
+      "swap": {
+        "configured": false,
+        "total": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "bytes",
+          "reasonCode": "not_configured"
+        },
+        "used": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "bytes",
+          "reasonCode": "not_configured"
+        },
+        "free": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "bytes",
+          "reasonCode": "not_configured"
+        }
+      },
+      "pressure": {
+        "some": {
+          "average10Seconds": {
+            "availability": "available",
+            "value": 0,
+            "unit": "percent",
+            "reasonCode": null
+          },
+          "average60Seconds": {
+            "availability": "available",
+            "value": 0,
+            "unit": "percent",
+            "reasonCode": null
+          },
+          "average300Seconds": {
+            "availability": "available",
+            "value": 0,
+            "unit": "percent",
+            "reasonCode": null
+          },
+          "total": {
+            "availability": "available",
+            "value": 0,
+            "unit": "microseconds",
+            "reasonCode": null
+          }
+        },
+        "full": {
+          "average10Seconds": {
+            "availability": "available",
+            "value": 0,
+            "unit": "percent",
+            "reasonCode": null
+          },
+          "average60Seconds": {
+            "availability": "available",
+            "value": 0,
+            "unit": "percent",
+            "reasonCode": null
+          },
+          "average300Seconds": {
+            "availability": "available",
+            "value": 0,
+            "unit": "percent",
+            "reasonCode": null
+          },
+          "total": {
+            "availability": "available",
+            "value": 0,
+            "unit": "microseconds",
+            "reasonCode": null
+          }
+        }
+      }
+    },
+    "filesystems": [],
+    "docker": {
+      "resource": {
+        "kind": "docker",
+        "id": "docker-local",
+        "displayName": "Docker"
+      },
+      "freshness": {
+        "state": "stale",
+        "observedAt": "2026-08-04T12:02:00Z",
+        "lastSuccessfulAt": "2026-08-04T12:02:00Z"
+      },
+      "communication": { "state": "available", "reasonCode": null },
+      "containers": []
+    },
+    "configuration": {
+      "resource": {
+        "kind": "configuration",
+        "id": "settings",
+        "displayName": "Settings"
+      },
+      "state": "valid",
+      "loadedAt": "2026-08-04T11:55:00Z",
+      "errorCode": null,
+      "errorMessageKey": null
+    }
+  },
+  "error": null
+}

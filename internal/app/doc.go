@@ -1,2 +1,3 @@
-// Package app will own application startup, shutdown, and dependency wiring.
+// Package app owns application startup, graceful shutdown, maintenance state,
+// and dependency wiring.
 package app

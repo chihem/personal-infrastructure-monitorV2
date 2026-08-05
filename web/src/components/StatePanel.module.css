@@ -1,0 +1,61 @@
+.panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 1rem;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-raised);
+}
+
+.icon {
+  display: grid;
+  width: 2.3rem;
+  height: 2.3rem;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--state-color, var(--color-unknown));
+  border-radius: 0.7rem;
+  background: color-mix(
+    in srgb,
+    var(--state-color, var(--color-unknown)) 12%,
+    transparent
+  );
+}
+
+.message {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.panel[data-state="loading"] {
+  --state-color: var(--color-accent);
+}
+
+.panel[data-state="stale"] {
+  --state-color: var(--color-warning);
+}
+
+.panel[data-state="error"] {
+  --state-color: var(--color-critical);
+}
+
+.spinner {
+  animation: spin 1.1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}

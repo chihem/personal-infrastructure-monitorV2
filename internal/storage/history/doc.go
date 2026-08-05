@@ -1,2 +1,2 @@
-// Package history will own monitoring-history persistence.
+// Package history opens the independent monitoring-history SQLite store.
 package history

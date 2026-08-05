@@ -1,0 +1,231 @@
+{
+  "apiVersion": "v1",
+  "requestId": "request-unavailable-001",
+  "generatedAt": "2026-08-04T12:00:30Z",
+  "data": {
+    "freshness": {
+      "state": "unavailable",
+      "observedAt": null,
+      "lastSuccessfulAt": null
+    },
+    "health": {
+      "states": ["critical", "unknown"],
+      "activeWarningCount": 0,
+      "causes": [
+        {
+          "code": "docker_unavailable",
+          "state": "critical",
+          "resource": {
+            "kind": "docker",
+            "id": "docker-local",
+            "displayName": "Docker"
+          },
+          "startedAt": "2026-08-04T12:00:00Z",
+          "messageKey": "health.dockerUnavailable"
+        },
+        {
+          "code": "host_measurements_unavailable",
+          "state": "unknown",
+          "resource": { "kind": "host", "id": "host", "displayName": "VPS" },
+          "startedAt": "2026-08-04T12:00:00Z",
+          "messageKey": "health.hostMeasurementsUnavailable"
+        }
+      ]
+    },
+    "cpu": {
+      "resource": { "kind": "cpu", "id": "host-cpu", "displayName": "CPU" },
+      "freshness": {
+        "state": "unavailable",
+        "observedAt": null,
+        "lastSuccessfulAt": null
+      },
+      "overall": {
+        "availability": "unavailable",
+        "value": null,
+        "unit": "percent",
+        "reasonCode": "not_collected"
+      },
+      "cores": [],
+      "load": {
+        "oneMinute": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "load",
+          "reasonCode": "not_collected"
+        },
+        "fiveMinutes": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "load",
+          "reasonCode": "not_collected"
+        },
+        "fifteenMinutes": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "load",
+          "reasonCode": "not_collected"
+        }
+      },
+      "logicalCpuCount": 0
+    },
+    "memory": {
+      "resource": {
+        "kind": "memory",
+        "id": "host-memory",
+        "displayName": "Memory"
+      },
+      "freshness": {
+        "state": "unavailable",
+        "observedAt": null,
+        "lastSuccessfulAt": null
+      },
+      "total": {
+        "availability": "unavailable",
+        "value": null,
+        "unit": "bytes",
+        "reasonCode": "not_collected"
+      },
+      "used": {
+        "availability": "unavailable",
+        "value": null,
+        "unit": "bytes",
+        "reasonCode": "not_collected"
+      },
+      "available": {
+        "availability": "unavailable",
+        "value": null,
+        "unit": "bytes",
+        "reasonCode": "not_collected"
+      },
+      "free": {
+        "availability": "unavailable",
+        "value": null,
+        "unit": "bytes",
+        "reasonCode": "not_collected"
+      },
+      "cached": {
+        "availability": "unavailable",
+        "value": null,
+        "unit": "bytes",
+        "reasonCode": "not_collected"
+      },
+      "buffered": {
+        "availability": "unavailable",
+        "value": null,
+        "unit": "bytes",
+        "reasonCode": "not_collected"
+      },
+      "usage": {
+        "availability": "unavailable",
+        "value": null,
+        "unit": "percent",
+        "reasonCode": "not_collected"
+      },
+      "swap": {
+        "configured": false,
+        "total": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "bytes",
+          "reasonCode": "not_collected"
+        },
+        "used": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "bytes",
+          "reasonCode": "not_collected"
+        },
+        "free": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "bytes",
+          "reasonCode": "not_collected"
+        }
+      },
+      "pressure": {
+        "some": {
+          "average10Seconds": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_collected"
+          },
+          "average60Seconds": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_collected"
+          },
+          "average300Seconds": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_collected"
+          },
+          "total": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "microseconds",
+            "reasonCode": "not_collected"
+          }
+        },
+        "full": {
+          "average10Seconds": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_collected"
+          },
+          "average60Seconds": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_collected"
+          },
+          "average300Seconds": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_collected"
+          },
+          "total": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "microseconds",
+            "reasonCode": "not_collected"
+          }
+        }
+      }
+    },
+    "filesystems": [],
+    "docker": {
+      "resource": {
+        "kind": "docker",
+        "id": "docker-local",
+        "displayName": "Docker"
+      },
+      "freshness": {
+        "state": "unavailable",
+        "observedAt": null,
+        "lastSuccessfulAt": null
+      },
+      "communication": {
+        "state": "unavailable",
+        "reasonCode": "dependency_unavailable"
+      },
+      "containers": []
+    },
+    "configuration": {
+      "resource": {
+        "kind": "configuration",
+        "id": "settings",
+        "displayName": "Settings"
+      },
+      "state": "unavailable",
+      "loadedAt": null,
+      "errorCode": "unavailable",
+      "errorMessageKey": "configuration.unavailable"
+    }
+  },
+  "error": null
+}

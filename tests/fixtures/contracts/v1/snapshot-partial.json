@@ -1,0 +1,340 @@
+{
+  "apiVersion": "v1",
+  "requestId": "request-partial-001",
+  "generatedAt": "2026-08-04T12:01:30Z",
+  "data": {
+    "freshness": {
+      "state": "fresh",
+      "observedAt": "2026-08-04T12:01:00Z",
+      "lastSuccessfulAt": "2026-08-04T12:01:00Z"
+    },
+    "health": {
+      "states": ["warning", "unknown"],
+      "activeWarningCount": 1,
+      "causes": [
+        {
+          "code": "configuration_invalid",
+          "state": "warning",
+          "resource": {
+            "kind": "configuration",
+            "id": "settings",
+            "displayName": "Settings"
+          },
+          "startedAt": "2026-08-04T12:01:00Z",
+          "messageKey": "health.configurationUsingPrevious"
+        },
+        {
+          "code": "memory_pressure_unavailable",
+          "state": "unknown",
+          "resource": {
+            "kind": "memory",
+            "id": "host-memory",
+            "displayName": "Memory"
+          },
+          "startedAt": "2026-08-04T12:01:00Z",
+          "messageKey": "health.memoryPressureUnavailable"
+        }
+      ]
+    },
+    "cpu": {
+      "resource": { "kind": "cpu", "id": "host-cpu", "displayName": "CPU" },
+      "freshness": {
+        "state": "fresh",
+        "observedAt": "2026-08-04T12:01:00Z",
+        "lastSuccessfulAt": "2026-08-04T12:01:00Z"
+      },
+      "overall": {
+        "availability": "available",
+        "value": 41,
+        "unit": "percent",
+        "reasonCode": null
+      },
+      "cores": [
+        {
+          "index": 0,
+          "usage": {
+            "availability": "available",
+            "value": 41,
+            "unit": "percent",
+            "reasonCode": null
+          }
+        }
+      ],
+      "load": {
+        "oneMinute": {
+          "availability": "available",
+          "value": 0.6,
+          "unit": "load",
+          "reasonCode": null
+        },
+        "fiveMinutes": {
+          "availability": "available",
+          "value": 0.5,
+          "unit": "load",
+          "reasonCode": null
+        },
+        "fifteenMinutes": {
+          "availability": "available",
+          "value": 0.4,
+          "unit": "load",
+          "reasonCode": null
+        }
+      },
+      "logicalCpuCount": 1
+    },
+    "memory": {
+      "resource": {
+        "kind": "memory",
+        "id": "host-memory",
+        "displayName": "Memory"
+      },
+      "freshness": {
+        "state": "fresh",
+        "observedAt": "2026-08-04T12:01:00Z",
+        "lastSuccessfulAt": "2026-08-04T12:01:00Z"
+      },
+      "total": {
+        "availability": "available",
+        "value": 11811160064,
+        "unit": "bytes",
+        "reasonCode": null
+      },
+      "used": {
+        "availability": "available",
+        "value": 4294967296,
+        "unit": "bytes",
+        "reasonCode": null
+      },
+      "available": {
+        "availability": "available",
+        "value": 7516192768,
+        "unit": "bytes",
+        "reasonCode": null
+      },
+      "free": {
+        "availability": "available",
+        "value": 1610612736,
+        "unit": "bytes",
+        "reasonCode": null
+      },
+      "cached": {
+        "availability": "available",
+        "value": 4831838208,
+        "unit": "bytes",
+        "reasonCode": null
+      },
+      "buffered": {
+        "availability": "available",
+        "value": 268435456,
+        "unit": "bytes",
+        "reasonCode": null
+      },
+      "usage": {
+        "availability": "available",
+        "value": 36.4,
+        "unit": "percent",
+        "reasonCode": null
+      },
+      "swap": {
+        "configured": false,
+        "total": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "bytes",
+          "reasonCode": "not_configured"
+        },
+        "used": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "bytes",
+          "reasonCode": "not_configured"
+        },
+        "free": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "bytes",
+          "reasonCode": "not_configured"
+        }
+      },
+      "pressure": {
+        "some": {
+          "average10Seconds": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_supported"
+          },
+          "average60Seconds": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_supported"
+          },
+          "average300Seconds": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_supported"
+          },
+          "total": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "microseconds",
+            "reasonCode": "not_supported"
+          }
+        },
+        "full": {
+          "average10Seconds": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_supported"
+          },
+          "average60Seconds": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_supported"
+          },
+          "average300Seconds": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_supported"
+          },
+          "total": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "microseconds",
+            "reasonCode": "not_supported"
+          }
+        }
+      }
+    },
+    "filesystems": [
+      {
+        "resource": {
+          "kind": "filesystem",
+          "id": "fs-proc",
+          "displayName": "/proc"
+        },
+        "freshness": {
+          "state": "fresh",
+          "observedAt": "2026-08-04T12:01:00Z",
+          "lastSuccessfulAt": "2026-08-04T12:01:00Z"
+        },
+        "mountPath": "/proc",
+        "deviceName": "proc",
+        "filesystemType": "proc",
+        "mounted": true,
+        "readOnly": false,
+        "total": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "bytes",
+          "reasonCode": "not_supported"
+        },
+        "used": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "bytes",
+          "reasonCode": "not_supported"
+        },
+        "free": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "bytes",
+          "reasonCode": "not_supported"
+        },
+        "usage": {
+          "availability": "unavailable",
+          "value": null,
+          "unit": "percent",
+          "reasonCode": "not_supported"
+        },
+        "io": {
+          "readRate": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "bytes_per_second",
+            "reasonCode": "not_supported"
+          },
+          "writeRate": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "bytes_per_second",
+            "reasonCode": "not_supported"
+          }
+        }
+      }
+    ],
+    "docker": {
+      "resource": {
+        "kind": "docker",
+        "id": "docker-local",
+        "displayName": "Docker"
+      },
+      "freshness": {
+        "state": "fresh",
+        "observedAt": "2026-08-04T12:01:00Z",
+        "lastSuccessfulAt": "2026-08-04T12:01:00Z"
+      },
+      "communication": { "state": "available", "reasonCode": null },
+      "containers": [
+        {
+          "resource": {
+            "kind": "container",
+            "id": "container-stopped",
+            "displayName": "stopped-worker"
+          },
+          "freshness": {
+            "state": "fresh",
+            "observedAt": "2026-08-04T12:01:00Z",
+            "lastSuccessfulAt": "2026-08-04T12:01:00Z"
+          },
+          "name": "stopped-worker",
+          "state": "stopped",
+          "health": "not_configured",
+          "deleted": false,
+          "uptime": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "seconds",
+            "reasonCode": "not_collected"
+          },
+          "restartCount": {
+            "availability": "available",
+            "value": 0,
+            "unit": "count",
+            "reasonCode": null
+          },
+          "cpuUsage": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "percent",
+            "reasonCode": "not_collected"
+          },
+          "memoryUsage": {
+            "availability": "unavailable",
+            "value": null,
+            "unit": "bytes",
+            "reasonCode": "not_collected"
+          },
+          "ports": []
+        }
+      ]
+    },
+    "configuration": {
+      "resource": {
+        "kind": "configuration",
+        "id": "settings",
+        "displayName": "Settings"
+      },
+      "state": "using_previous",
+      "loadedAt": "2026-08-04T11:55:00Z",
+      "errorCode": "settings_invalid",
+      "errorMessageKey": "configuration.previousStillActive"
+    }
+  },
+  "error": null
+}

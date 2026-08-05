@@ -1,0 +1,152 @@
+.page {
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.pageHeader h1,
+.sectionHeading h2,
+.pageHeader p {
+  margin: 0;
+}
+
+.pageHeader h1 {
+  max-width: 18ch;
+  margin-top: 0.35rem;
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+}
+
+.eyebrow {
+  color: var(--color-accent-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.introduction {
+  max-width: 68ch;
+  margin-top: 0.85rem !important;
+  color: var(--color-text-muted);
+  font-size: clamp(0.95rem, 2vw, 1.05rem);
+  line-height: 1.65;
+}
+
+.section {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sectionHeading h2 {
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.areaGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.areaCard {
+  position: relative;
+  display: grid;
+  min-height: 9.25rem;
+  align-content: end;
+  gap: 0.25rem;
+  padding: 1rem;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+  background:
+    linear-gradient(140deg, var(--color-surface-raised), transparent 80%),
+    var(--color-surface);
+  text-decoration: none;
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.areaCard:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--color-accent) 40%,
+    var(--color-border)
+  );
+  transform: translateY(-2px);
+}
+
+.areaIcon {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  color: var(--color-accent-strong);
+  border-radius: 0.75rem;
+  background: var(--color-accent-soft);
+}
+
+.areaState {
+  color: var(--color-text-subtle);
+  font-size: 0.76rem;
+}
+
+.areaArrow {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  color: var(--color-text-subtle);
+}
+
+.backLink {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  color: var(--color-accent-strong);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-raised);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+@media (max-width: 68rem) {
+  .areaGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 36rem) {
+  .pageHeader {
+    display: grid;
+  }
+
+  .areaGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .areaCard {
+    min-height: 7.75rem;
+  }
+}
