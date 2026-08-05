@@ -85,6 +85,57 @@ THIS IS NOT VALID SQL;
 	}
 }
 
+func TestHistoryVersionTwoUpgradePreservesRunsAndAddsSubsystemErrors(t *testing.T) {
+	t.Parallel()
+	database := openMemoryDatabase(t)
+	defer database.Close()
+	initialSQL, err := files.ReadFile("history/00001_initial.sql")
+	if err != nil {
+		t.Fatalf("read initial history migration: %v", err)
+	}
+	versionOne := fstest.MapFS{
+		"history/00001_initial.sql": {Data: initialSQL},
+	}
+	provider, err := newProvider(database, History, versionOne)
+	if err != nil {
+		t.Fatalf("newProvider(version one) error = %v", err)
+	}
+	if _, err := provider.Up(context.Background()); err != nil {
+		t.Fatalf("Up(version one) error = %v", err)
+	}
+	insertRunSQL := "INSERT INTO collection_runs (" +
+		"started_at_unix, finished_at_unix, trigger_kind, " +
+		"result, host_result, docker_result, error_code" +
+		") VALUES (1, 2, 'scheduled', 'partial', 'succeeded', 'failed', 'docker_unavailable')"
+	if _, err := database.Exec(insertRunSQL); err != nil {
+		t.Fatalf("insert version-one run: %v", err)
+	}
+
+	provider, err = newProvider(database, History, files)
+	if err != nil {
+		t.Fatalf("newProvider(current) error = %v", err)
+	}
+	if _, err := provider.Up(context.Background()); err != nil {
+		t.Fatalf("upgrade history schema: %v", err)
+	}
+	if err := Validate(context.Background(), database, History); err != nil {
+		t.Fatalf("Validate(upgraded history) error = %v", err)
+	}
+	var count int
+	if err := database.QueryRow("SELECT count(*) FROM collection_runs").Scan(&count); err != nil || count != 1 {
+		t.Fatalf("preserved collection runs = %d, error = %v", count, err)
+	}
+	assertColumnExists(t, database, "collection_runs", "host_error_code")
+	assertColumnExists(t, database, "collection_runs", "docker_error_code")
+	compatibility, err := ReadCompatibility(context.Background(), database)
+	if err != nil {
+		t.Fatalf("ReadCompatibility() error = %v", err)
+	}
+	if compatibility.CurrentVersion != 2 || compatibility.MinimumReaderVersion != 2 {
+		t.Fatalf("upgraded compatibility = %+v", compatibility)
+	}
+}
+
 func TestValidateRejectsNewerSchema(t *testing.T) {
 	t.Parallel()
 

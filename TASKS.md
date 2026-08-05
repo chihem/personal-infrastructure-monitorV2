@@ -4,7 +4,7 @@ Status: **Approved for task-by-task implementation**
 Based on: `PROJECT_CONTEXT.md` and `TECHNICAL_PLAN.md`
 Created: 2026-08-03
 Last updated: 2026-08-05
-Implementation progress: **SET-01 through FND-07 complete**
+Implementation progress: **SET-01 through FND-07 and CORE-01 complete**
 
 ## Roadmap rules
 
@@ -154,7 +154,7 @@ Implementation progress: **SET-01 through FND-07 complete**
 
 ## Phase 3 - Core features
 
-### CORE-01 - Implement history queries and rolling retention
+### CORE-01 - Implement history queries and rolling retention [Complete]
 
 - **Objective:** Store raw minute samples and return bounded raw or aggregated ranges while deleting expired history safely.
 - **Why it is needed:** Every chart and the 14-day retention promise depend on common, efficient history behavior.
@@ -596,6 +596,6 @@ Implementation progress: **SET-01 through FND-07 complete**
 
 ## Next task
 
-SET-01 through SET-04 and FND-01 through FND-07 are complete. The next and only task eligible to start is **CORE-01 - Implement history queries and rolling retention**.
+SET-01 through SET-04, FND-01 through FND-07, and CORE-01 are complete. The next and only task eligible to start is **CORE-02 - Implement CPU collection and API**.
 
-Wait for the exact authorization: `START TASK CORE-01`.
+Wait for the exact authorization: `START TASK CORE-02`.

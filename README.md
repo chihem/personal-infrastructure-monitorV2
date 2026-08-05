@@ -4,7 +4,7 @@ Infrastructure Monitor is a private dashboard for monitoring and administering o
 
 The former Windows/Python/Vinext/Cloudflare prototype has been retired from the active development line. It remains recoverable from the Git tag `legacy-prototype-v0.2.0`.
 
-The replacement application uses Go for the backend and React/TypeScript/Vite for the frontend. Its private HTTP lifecycle, configuration and storage foundations, API contracts, responsive bilingual UI shell, collection scheduler boundaries, and operational self-status are implemented. Real monitoring collectors and data-backed product pages are not implemented yet.
+The replacement application uses Go for the backend and React/TypeScript/Vite for the frontend. Its private HTTP lifecycle, configuration and storage foundations, API contracts, responsive bilingual UI shell, collection scheduler boundaries, operational self-status, and bounded history repository are implemented. Real monitoring collectors and data-backed product pages are not implemented yet.
 
 The approved project documents are:
 
@@ -18,6 +18,7 @@ The approved project documents are:
 - [`docs/ui-foundation.md`](docs/ui-foundation.md)
 - [`docs/scheduling.md`](docs/scheduling.md)
 - [`docs/observability.md`](docs/observability.md)
+- [`docs/history.md`](docs/history.md)
 
 Implementation is task-gated. Only a task explicitly started by the user may be implemented.
 
@@ -41,6 +42,10 @@ English and French can be switched at runtime. The first visit follows a support
 ## Collection scheduling foundation
 
 The scheduler aligns automatic collection to one-minute boundaries, rejects overlapping manual refreshes, runs host and Docker providers with explicit deadlines and cancellation, and retains partial results without inventing missed samples. Provider interfaces exist, but real host and Docker collectors are intentionally deferred to their core-feature tasks. See [`docs/scheduling.md`](docs/scheduling.md) for the execution and failure rules.
+
+## History foundation
+
+The history repository atomically records collection-run, host, and dynamic per-vCPU rows. It resolves every approved UTC range, returns raw one-minute chart positions through six hours, aggregates longer ranges to at most 600 buckets while retaining minimum/average/maximum, and distinguishes unavailable evidence from true gaps. Rolling cleanup removes only data older than 14 days in bounded transactions. See [`docs/history.md`](docs/history.md).
 
 ## Private runtime foundation
 

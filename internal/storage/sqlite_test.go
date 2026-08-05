@@ -34,8 +34,13 @@ func TestFreshDatabasesInitializeIndependently(t *testing.T) {
 		"container_state_events", "incidents",
 	})
 	assertTables(t, auditDatabase.SQL(), []string{"schema_migrations", "schema_compatibility", "audit_entries"})
-	assertCompatibility(t, historyDatabase.SQL(), migrations.History)
-	assertCompatibility(t, auditDatabase.SQL(), migrations.Audit)
+	assertCompatibility(t, historyDatabase.SQL(), migrations.History, 2)
+	assertCompatibility(t, auditDatabase.SQL(), migrations.Audit, 1)
+	for _, column := range []string{"host_error_code", "docker_error_code"} {
+		if !slices.Contains(tableColumns(t, historyDatabase.SQL(), "collection_runs"), column) {
+			t.Errorf("collection_runs is missing %q", column)
+		}
+	}
 }
 
 func TestRepeatedStartupIsIdempotent(t *testing.T) {
@@ -63,7 +68,7 @@ func TestRepeatedStartupIsIdempotent(t *testing.T) {
 	if count != 1 {
 		t.Fatalf("collection run count = %d, want 1", count)
 	}
-	assertMigrationCount(t, second.SQL(), 1)
+	assertMigrationCount(t, second.SQL(), 2)
 }
 
 func TestWALAndConnectionPoliciesApplyToEveryPooledConnection(t *testing.T) {
@@ -170,7 +175,7 @@ func TestConcurrentInitialization(t *testing.T) {
 
 	database := openHistory(t, path)
 	defer database.Close()
-	assertMigrationCount(t, database.SQL(), 1)
+	assertMigrationCount(t, database.SQL(), 2)
 }
 
 func TestAuditFailureDoesNotPreventReadOnlyHistory(t *testing.T) {
@@ -333,13 +338,13 @@ func assertTables(t *testing.T, database *sql.DB, expected []string) {
 	}
 }
 
-func assertCompatibility(t *testing.T, database *sql.DB, kind migrations.Kind) {
+func assertCompatibility(t *testing.T, database *sql.DB, kind migrations.Kind, version int64) {
 	t.Helper()
 	compatibility, err := migrations.ReadCompatibility(context.Background(), database)
 	if err != nil {
 		t.Fatalf("ReadCompatibility() error = %v", err)
 	}
-	if compatibility.Kind != kind || compatibility.CurrentVersion != 1 || compatibility.MinimumReaderVersion != 1 {
+	if compatibility.Kind != kind || compatibility.CurrentVersion != version || compatibility.MinimumReaderVersion != version {
 		t.Fatalf("compatibility = %+v", compatibility)
 	}
 }

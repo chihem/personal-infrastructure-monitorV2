@@ -18,9 +18,12 @@ Each new migration must update this table and this document. Destructive automat
 | Database | Version | Migration | Compatibility with previous release | Rollback requirement |
 |---|---:|---|---|---|
 | history | 1 | Initial collection/resource/sample/incident schema | No earlier database-backed release exists | Previous scaffold ignores the new database; no destructive down migration |
+| history | 2 | Add independent host and Docker collection error codes | Additive data columns; existing rows are preserved, but version-1 binaries fail closed on newer schemas | Restore the verified pre-migration history backup before running a version-1 binary |
 | audit | 1 | Initial administrative-audit schema | No earlier database-backed release exists | Previous scaffold ignores the new database; no destructive down migration |
 
 The Goose-owned migration timestamp is migration metadata. All application data timestamps, including `schema_compatibility.applied_at_unix`, use UTC Unix seconds.
+
+History query, aggregation, transaction, and cleanup semantics are documented in [`history.md`](history.md).
 
 ## Sensitive-data boundary
 
