@@ -34,7 +34,7 @@ Audit storage is optional for read-only startup, so its failure produces `degrad
 
 Database paths are never returned. A size is `null` if the base file is missing, is a symlink, is not a regular file, or cannot be read. Optional WAL and shared-memory files are included when present.
 
-Until later roadmap tasks wire the scheduler and backup implementation into production, collection is `not_started`, Docker connectivity is `not_checked`, and backup state is `not_implemented`. These values are deliberate evidence of unfinished work, not successful checks.
+The production scheduler is now active and reports its real run state. Until their later roadmap tasks are implemented, Docker collection fails explicitly with `docker_not_implemented`, Docker connectivity remains `not_checked`, and backup state remains `not_implemented`. These values are deliberate evidence of unfinished work, not successful checks.
 
 ## Request correlation
 

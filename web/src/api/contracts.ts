@@ -414,6 +414,52 @@ export interface ReadinessStatus {
 
 export type OperationalStatusResponse = APIResponse<OperationalStatusSnapshot>;
 
+export type CPUCurrentResponse = APIResponse<CPUSnapshot>;
+export type CPUMetric = "overall" | "core" | "load_1" | "load_5" | "load_15";
+export type CPUHistoryPoint =
+  | {
+      start: string;
+      end: string;
+      state: "observed";
+      observedSamples: number;
+      availableSamples: number;
+      minimum: number;
+      average: number;
+      maximum: number;
+    }
+  | {
+      start: string;
+      end: string;
+      state: "unavailable";
+      observedSamples: number;
+      availableSamples: 0;
+      minimum: null;
+      average: null;
+      maximum: null;
+    }
+  | {
+      start: string;
+      end: string;
+      state: "gap";
+      observedSamples: 0;
+      availableSamples: 0;
+      minimum: null;
+      average: null;
+      maximum: null;
+    };
+
+export interface CPUHistorySeries {
+  resource: ResourceRef;
+  metric: CPUMetric;
+  coreIndex: number | null;
+  unit: "percent" | "load";
+  range: ResolvedRange;
+  bucketDurationSeconds: number;
+  points: CPUHistoryPoint[];
+}
+
+export type CPUHistoryResponse = APIResponse<CPUHistorySeries>;
+
 export type ChartPoint =
   | { timestamp: string; state: "observed"; measurement: Metric }
   | { timestamp: string; state: "gap"; measurement: null };
@@ -592,6 +638,30 @@ export function parseMonitoringResponse(value: unknown): MonitoringResponse {
   return value as MonitoringResponse;
 }
 
+export function parseCPUCurrentResponse(value: unknown): CPUCurrentResponse {
+  const problems: string[] = [];
+  const data = validateResponseEnvelope(value, problems);
+  if (data !== undefined) {
+    validateCPUSnapshot(data, "data", problems);
+  }
+  if (problems.length > 0) {
+    throw new ContractValidationError(problems);
+  }
+  return value as CPUCurrentResponse;
+}
+
+export function parseCPUHistoryResponse(value: unknown): CPUHistoryResponse {
+  const problems: string[] = [];
+  const data = validateResponseEnvelope(value, problems);
+  if (data !== undefined) {
+    validateCPUHistory(data, "data", problems);
+  }
+  if (problems.length > 0) {
+    throw new ContractValidationError(problems);
+  }
+  return value as CPUHistoryResponse;
+}
+
 export function parseOperationalStatusResponse(
   value: unknown,
 ): OperationalStatusResponse {
@@ -722,6 +792,244 @@ function validateSnapshotResource(
   }
   validateResource(value.resource, `${path}.resource`, kind, problems);
   validateFreshness(value.freshness, `${path}.freshness`, problems);
+}
+
+function validateCPUSnapshot(value: unknown, path: string, problems: string[]) {
+  if (!isRecord(value)) {
+    problems.push(`${path} must be an object`);
+    return;
+  }
+  validateResource(value.resource, `${path}.resource`, "cpu", problems);
+  validateFreshness(value.freshness, `${path}.freshness`, problems);
+  validateExpectedMetric(value.overall, `${path}.overall`, "percent", problems);
+  validateNonNegativeInteger(
+    value.logicalCpuCount,
+    `${path}.logicalCpuCount`,
+    problems,
+  );
+  if (!Array.isArray(value.cores)) {
+    problems.push(`${path}.cores must be an array`);
+  } else {
+    const indexes = new Set<number>();
+    value.cores.forEach((core, index) => {
+      const corePath = `${path}.cores[${index}]`;
+      if (!isRecord(core)) {
+        problems.push(`${corePath} must be an object`);
+        return;
+      }
+      validateNonNegativeInteger(core.index, `${corePath}.index`, problems);
+      if (typeof core.index === "number") {
+        if (indexes.has(core.index)) {
+          problems.push(`${corePath}.index is duplicated`);
+        }
+        indexes.add(core.index);
+      }
+      validateExpectedMetric(
+        core.usage,
+        `${corePath}.usage`,
+        "percent",
+        problems,
+      );
+    });
+    if (
+      typeof value.logicalCpuCount === "number" &&
+      value.cores.length > value.logicalCpuCount
+    ) {
+      problems.push(`${path}.cores exceeds logicalCpuCount`);
+    }
+  }
+  if (!isRecord(value.load)) {
+    problems.push(`${path}.load must be an object`);
+  } else {
+    validateExpectedMetric(
+      value.load.oneMinute,
+      `${path}.load.oneMinute`,
+      "load",
+      problems,
+    );
+    validateExpectedMetric(
+      value.load.fiveMinutes,
+      `${path}.load.fiveMinutes`,
+      "load",
+      problems,
+    );
+    validateExpectedMetric(
+      value.load.fifteenMinutes,
+      `${path}.load.fifteenMinutes`,
+      "load",
+      problems,
+    );
+  }
+}
+
+function validateCPUHistory(value: unknown, path: string, problems: string[]) {
+  if (!isRecord(value)) {
+    problems.push(`${path} must be an object`);
+    return;
+  }
+  validateResource(value.resource, `${path}.resource`, "cpu", problems);
+  const metrics = new Set<CPUMetric>([
+    "overall",
+    "core",
+    "load_1",
+    "load_5",
+    "load_15",
+  ]);
+  if (
+    typeof value.metric !== "string" ||
+    !metrics.has(value.metric as CPUMetric)
+  ) {
+    problems.push(`${path}.metric is invalid`);
+  }
+  if (value.metric === "core") {
+    validateNonNegativeInteger(value.coreIndex, `${path}.coreIndex`, problems);
+  } else if (value.coreIndex !== null) {
+    problems.push(`${path}.coreIndex is valid only for the core metric`);
+  }
+  const expectedUnit =
+    value.metric === "overall" || value.metric === "core" ? "percent" : "load";
+  if (value.unit !== expectedUnit) {
+    problems.push(`${path}.unit does not match metric`);
+  }
+  if (!isRecord(value.range)) {
+    problems.push(`${path}.range must be an object`);
+  } else {
+    validateUTC(value.range.start, `${path}.range.start`, problems);
+    validateUTC(value.range.end, `${path}.range.end`, problems);
+  }
+  validateNonNegativeInteger(
+    value.bucketDurationSeconds,
+    `${path}.bucketDurationSeconds`,
+    problems,
+  );
+  if (
+    typeof value.bucketDurationSeconds === "number" &&
+    value.bucketDurationSeconds < 60
+  ) {
+    problems.push(`${path}.bucketDurationSeconds must be at least 60`);
+  }
+  if (!Array.isArray(value.points)) {
+    problems.push(`${path}.points must be an array`);
+    return;
+  }
+  if (value.points.length > 600) {
+    problems.push(`${path}.points cannot exceed 600 entries`);
+  }
+  value.points.forEach((point, index) => {
+    validateCPUHistoryPoint(
+      point,
+      `${path}.points[${index}]`,
+      value.unit,
+      problems,
+    );
+  });
+}
+
+function validateCPUHistoryPoint(
+  value: unknown,
+  path: string,
+  unit: unknown,
+  problems: string[],
+) {
+  if (!isRecord(value)) {
+    problems.push(`${path} must be an object`);
+    return;
+  }
+  validateUTC(value.start, `${path}.start`, problems);
+  validateUTC(value.end, `${path}.end`, problems);
+  validateNonNegativeInteger(
+    value.observedSamples,
+    `${path}.observedSamples`,
+    problems,
+  );
+  validateNonNegativeInteger(
+    value.availableSamples,
+    `${path}.availableSamples`,
+    problems,
+  );
+  const noValues =
+    value.minimum === null && value.average === null && value.maximum === null;
+  if (value.state === "observed") {
+    if (
+      typeof value.observedSamples !== "number" ||
+      value.observedSamples < 1 ||
+      typeof value.availableSamples !== "number" ||
+      value.availableSamples < 1 ||
+      value.availableSamples > value.observedSamples
+    ) {
+      problems.push(`${path}.observed sample counts are inconsistent`);
+    }
+    validateHistorySummary(
+      value.minimum,
+      value.average,
+      value.maximum,
+      unit,
+      path,
+      problems,
+    );
+  } else if (value.state === "unavailable") {
+    if (
+      typeof value.observedSamples !== "number" ||
+      value.observedSamples < 1 ||
+      value.availableSamples !== 0 ||
+      !noValues
+    ) {
+      problems.push(
+        `${path}.unavailable bucket contains inconsistent evidence`,
+      );
+    }
+  } else if (value.state === "gap") {
+    if (
+      value.observedSamples !== 0 ||
+      value.availableSamples !== 0 ||
+      !noValues
+    ) {
+      problems.push(`${path}.gap cannot contain evidence`);
+    }
+  } else {
+    problems.push(`${path}.state is invalid`);
+  }
+}
+
+function validateHistorySummary(
+  minimum: unknown,
+  average: unknown,
+  maximum: unknown,
+  unit: unknown,
+  path: string,
+  problems: string[],
+) {
+  const values = [minimum, average, maximum];
+  if (
+    values.some(
+      (value) =>
+        typeof value !== "number" ||
+        !Number.isFinite(value) ||
+        value < 0 ||
+        (unit === "percent" && value > 100),
+    )
+  ) {
+    problems.push(`${path}.summary values are invalid`);
+    return;
+  }
+  if (
+    (minimum as number) > (average as number) ||
+    (average as number) > (maximum as number)
+  ) {
+    problems.push(`${path}.summary values are not ordered`);
+  }
+}
+
+function validateExpectedMetric(
+  value: unknown,
+  path: string,
+  unit: Unit,
+  problems: string[],
+) {
+  validateMetric(value, path, problems);
+  if (isRecord(value) && value.unit !== unit) {
+    problems.push(`${path}.unit must be ${unit}`);
+  }
 }
 
 function validateResponseEnvelope(

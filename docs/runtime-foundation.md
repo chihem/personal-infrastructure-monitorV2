@@ -28,7 +28,7 @@ Startup never falls back to `0.0.0.0`, `::`, another interface, or localhost. Th
 | `/api/v1/status` | Bounded internal operational snapshot |
 | Other `/api/` paths | JSON not-found response |
 
-Readiness requires usable configuration, available history storage, and inactive maintenance mode. Audit-storage failure degrades read-only operation but does not make it unready. The status snapshot also reports database sizes when safely readable, collector timing when a run exists, and explicit `not_started`, `not_checked`, or `not_implemented` placeholders where later foundation work has not been wired.
+Readiness requires usable configuration, available history storage, and inactive maintenance mode. Audit-storage failure degrades read-only operation but does not make it unready. The status snapshot also reports database sizes when safely readable, real collector timing when a run exists, and explicit `not_checked` or `not_implemented` placeholders for Docker connectivity and backups.
 
 Shared HTTP safeguards currently include:
 

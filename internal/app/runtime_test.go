@@ -66,6 +66,16 @@ func TestRunStartsServesAndStops(t *testing.T) {
 	}
 	healthResponse.Body.Close()
 
+	cpuResponse := requestUntilReady(t, client, baseURL+"/api/v1/cpu")
+	cpuBody, err := io.ReadAll(cpuResponse.Body)
+	cpuResponse.Body.Close()
+	if err != nil {
+		t.Fatalf("read CPU response: %v", err)
+	}
+	if cpuResponse.StatusCode != http.StatusOK || !strings.Contains(string(cpuBody), `"freshness":{"state":"unavailable"`) {
+		t.Fatalf("CPU response status = %d, body = %s", cpuResponse.StatusCode, cpuBody)
+	}
+
 	cancel()
 	if err := waitFor(t, result, "Run result"); err != nil {
 		t.Fatalf("Run() error = %v", err)
@@ -143,7 +153,6 @@ func TestRunContinuesWhenAuditDatabaseIsUnavailable(t *testing.T) {
 	}
 
 	listenerReady := make(chan net.Listener, 1)
-	historyCloser := &countingCloser{}
 	options := Options{
 		SettingsPath:    filepath.Join(root, "etc", "settings.toml"),
 		LastValidPath:   filepath.Join(root, "state", "last-valid-settings.toml"),
@@ -158,8 +167,7 @@ func TestRunContinuesWhenAuditDatabaseIsUnavailable(t *testing.T) {
 			}
 			return listener, err
 		},
-		openHistory: func(context.Context, string) (io.Closer, error) { return historyCloser, nil },
-		openAudit:   func(context.Context, string) (io.Closer, error) { return nil, errors.New("audit unavailable") },
+		openAudit: func(context.Context, string) (io.Closer, error) { return nil, errors.New("audit unavailable") },
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -182,8 +190,8 @@ func TestRunContinuesWhenAuditDatabaseIsUnavailable(t *testing.T) {
 	if err := waitFor(t, result, "Run result"); err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
-	if historyCloser.count.Load() != 1 {
-		t.Fatalf("history close count = %d, want 1", historyCloser.count.Load())
+	if err := os.Rename(options.HistoryPath, options.HistoryPath+".closed"); err != nil {
+		t.Fatalf("history database was not released: %v", err)
 	}
 }
 

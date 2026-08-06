@@ -39,7 +39,7 @@ describe("App shell", () => {
     await user.keyboard("{Enter}");
 
     expect(
-      await screen.findByRole("heading", { name: "CPU" }),
+      await screen.findByRole("heading", { name: "Processor performance" }),
     ).toBeInTheDocument();
     expect(cpuLink).toHaveAttribute("aria-current", "page");
   });

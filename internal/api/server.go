@@ -29,6 +29,7 @@ type OperationalStatusProvider func() contracts.OperationalStatus
 type HandlerOptions struct {
 	WebHandler http.Handler
 	Status     OperationalStatusProvider
+	CPU        CPUDataSource
 	Logger     *observability.Logger
 
 	requestIDGenerator func() string
@@ -99,6 +100,7 @@ func NewHandlerWithOptions(options HandlerOptions) http.Handler {
 		}
 		writeData(writer, request, http.StatusOK, options.now, snapshot)
 	})
+	registerCPURoutes(mux, options.CPU, options.now)
 
 	mux.HandleFunc("/api/", func(writer http.ResponseWriter, request *http.Request) {
 		writeAPIError(writer, request, http.StatusNotFound, options.now, domain.ErrorNotFound, "errors.notFound", "The requested endpoint was not found.")

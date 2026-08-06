@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/api"
+	"github.com/chihem/personal-infrastructure-monitorV2/internal/collector/docker"
+	hostcpu "github.com/chihem/personal-infrastructure-monitorV2/internal/collector/host/cpu"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/config"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/observability"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/scheduler"
@@ -25,10 +27,12 @@ const (
 	DefaultSettingsPath  = "/etc/pim/settings.toml"
 	DefaultLastValidPath = "/var/lib/pim/last-valid-settings.toml"
 	defaultShutdownTime  = 15 * time.Second
+	defaultCollectorTime = 10 * time.Second
 )
 
 type listenerFactory func(context.Context, int) (net.Listener, error)
 type databaseOpener func(context.Context, string) (io.Closer, error)
+type historyDatabaseOpener func(context.Context, string) (*storage.Database, error)
 
 type Options struct {
 	SettingsPath  string
@@ -40,7 +44,7 @@ type Options struct {
 	Logger          *observability.Logger
 
 	listen           listenerFactory
-	openHistory      databaseOpener
+	openHistory      historyDatabaseOpener
 	openAudit        databaseOpener
 	now              func() time.Time
 	databaseSize     databaseSizer
@@ -58,7 +62,7 @@ func DefaultOptions() Options {
 		now:             time.Now,
 		databaseSize:    sizeDatabaseFiles,
 		listen:          ListenTailscaleIPv4,
-		openHistory: func(ctx context.Context, path string) (io.Closer, error) {
+		openHistory: func(ctx context.Context, path string) (*storage.Database, error) {
 			return history.Open(ctx, path)
 		},
 		openAudit: func(ctx context.Context, path string) (io.Closer, error) {
@@ -115,6 +119,21 @@ func Run(ctx context.Context, options Options) (runErr error) {
 		return errors.Join(fmt.Errorf("open history database: %w", err), listener.Close())
 	}
 	closers := []io.Closer{historyDatabase}
+	historyRepository, err := history.New(historyDatabase)
+	if err != nil {
+		return errors.Join(fmt.Errorf("create history repository: %w", err), listener.Close(), historyDatabase.Close())
+	}
+	cpuCollector, err := hostcpu.NewWithOptions(hostcpu.Options{Now: options.now})
+	if err != nil {
+		return errors.Join(fmt.Errorf("create CPU collector: %w", err), listener.Close(), historyDatabase.Close())
+	}
+	collectionScheduler, err := scheduler.New(scheduler.Options{
+		Host: cpuCollector, Docker: docker.UnavailableProvider{}, CollectorTimeout: defaultCollectorTime,
+		Recorder: collectionRecorder{history: historyRepository},
+	})
+	if err != nil {
+		return errors.Join(fmt.Errorf("create collection scheduler: %w", err), listener.Close(), historyDatabase.Close())
+	}
 
 	auditDatabase, auditErr := options.openAudit(ctx, options.AuditPath)
 	if auditErr == nil {
@@ -122,15 +141,23 @@ func Run(ctx context.Context, options Options) (runErr error) {
 	}
 
 	maintenance := &MaintenanceState{}
+	collectionStatus := options.collectionStatus
+	if collectionStatus == nil {
+		collectionStatus = collectionScheduler
+	}
 	status := statusSource{
 		startedAt: startedAt, now: options.now, maintenance: maintenance,
 		configuration: settingsManager.Status,
 		historyPath:   options.HistoryPath, auditPath: options.AuditPath,
 		historyAvailable: true, auditAvailable: auditErr == nil,
-		collection: options.collectionStatus, databaseSize: options.databaseSize,
+		collection: collectionStatus, databaseSize: options.databaseSize,
+	}
+	cpuSource := cpuDataSource{
+		collector: cpuCollector, history: historyRepository, now: options.now,
+		staleAfter: time.Duration(settings.Collection.StaleAfterSecs) * time.Second,
 	}
 	handler := api.NewHandlerWithOptions(api.HandlerOptions{
-		WebHandler: web.Handler(), Status: status.snapshot, Logger: options.Logger,
+		WebHandler: web.Handler(), Status: status.snapshot, CPU: cpuSource, Logger: options.Logger,
 	})
 	server := api.NewServer(listener.Addr().String(), settings.Server, handler)
 
@@ -139,16 +166,39 @@ func Run(ctx context.Context, options Options) (runErr error) {
 		stopWatcher()
 		return errors.Join(fmt.Errorf("start settings watcher: %w", err), listener.Close(), closeAll(closers))
 	}
+	workerContext, stopWorkers := context.WithCancel(ctx)
+	var workers sync.WaitGroup
+	workers.Add(2)
+	go func() {
+		defer workers.Done()
+		runCollectionScheduler(workerContext, collectionScheduler, options.Logger)
+	}()
+	go func() {
+		defer workers.Done()
+		runHistoryRetention(workerContext, historyRepository, options.now, options.Logger)
+	}()
 
 	runtime := &runtime{
 		server:          server,
 		listener:        listener,
 		closers:         closers,
 		stopWatcher:     stopWatcher,
+		stopWorkers:     stopWorkers,
+		workers:         &workers,
 		shutdownTimeout: options.ShutdownTimeout,
 	}
 	_ = options.Logger.Info(observability.Event{Component: "app", Code: "app.ready"})
 	return runtime.serve(ctx)
+}
+
+func runCollectionScheduler(ctx context.Context, service *scheduler.Service, logger *observability.Logger) {
+	for ctx.Err() == nil {
+		err := service.Run(ctx)
+		if err == nil || ctx.Err() != nil {
+			return
+		}
+		_ = logger.Warning(observability.Event{Component: "collection", Code: "collection.scheduler.failed"})
+	}
 }
 
 func (options *Options) prepare() error {
@@ -200,6 +250,8 @@ type runtime struct {
 	listener        net.Listener
 	closers         []io.Closer
 	stopWatcher     context.CancelFunc
+	stopWorkers     context.CancelFunc
+	workers         *sync.WaitGroup
 	shutdownTimeout time.Duration
 	closeOnce       sync.Once
 	closeErr        error
@@ -213,14 +265,14 @@ func (runtime *runtime) serve(ctx context.Context) error {
 
 	select {
 	case serveErr := <-serveErrors:
-		runtime.stopWatcher()
+		runtime.stopServices()
 		closeErr := runtime.closeResources()
 		if errors.Is(serveErr, http.ErrServerClosed) {
 			return closeErr
 		}
 		return errors.Join(fmt.Errorf("serve private HTTP: %w", serveErr), closeErr)
 	case <-ctx.Done():
-		runtime.stopWatcher()
+		runtime.stopServices()
 		shutdownContext, cancel := context.WithTimeout(context.Background(), runtime.shutdownTimeout)
 		shutdownErr := runtime.server.Shutdown(shutdownContext)
 		cancel()
@@ -233,6 +285,16 @@ func (runtime *runtime) serve(ctx context.Context) error {
 			serveErr = nil
 		}
 		return errors.Join(shutdownErr, serveErr, runtime.closeResources())
+	}
+}
+
+func (runtime *runtime) stopServices() {
+	runtime.stopWatcher()
+	if runtime.stopWorkers != nil {
+		runtime.stopWorkers()
+	}
+	if runtime.workers != nil {
+		runtime.workers.Wait()
 	}
 }
 

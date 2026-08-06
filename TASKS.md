@@ -3,8 +3,8 @@
 Status: **Approved for task-by-task implementation**
 Based on: `PROJECT_CONTEXT.md` and `TECHNICAL_PLAN.md`
 Created: 2026-08-03
-Last updated: 2026-08-05
-Implementation progress: **SET-01 through FND-07 and CORE-01 complete**
+Last updated: 2026-08-06
+Implementation progress: **SET-01 through FND-07 and CORE-01 through CORE-03 complete**
 
 ## Roadmap rules
 
@@ -166,7 +166,7 @@ Implementation progress: **SET-01 through FND-07 and CORE-01 complete**
 - **Security considerations:** Reject excessive ranges and unbounded result sizes; use parameterized SQL exclusively.
 - **Estimated difficulty:** Hard.
 
-### CORE-02 - Implement CPU collection and API
+### CORE-02 - Implement CPU collection and API [Complete]
 
 - **Objective:** Collect and expose current/historical overall CPU, dynamic per-vCPU usage, and 1/5/15-minute load averages.
 - **Why it is needed:** CPU monitoring is a primary MVP domain and dashboard input.
@@ -178,7 +178,7 @@ Implementation progress: **SET-01 through FND-07 and CORE-01 complete**
 - **Security considerations:** Read only required `/proc` files; do not expose unrelated process or command-line data.
 - **Estimated difficulty:** Medium.
 
-### CORE-03 - Build the CPU page
+### CORE-03 - Build the CPU page [Complete]
 
 - **Objective:** Present overall CPU, expandable per-vCPU details, load averages, thresholds, ranges, and historical charts.
 - **Why it is needed:** The dedicated CPU page is an explicitly confirmed feature.
@@ -596,6 +596,6 @@ Implementation progress: **SET-01 through FND-07 and CORE-01 complete**
 
 ## Next task
 
-SET-01 through SET-04, FND-01 through FND-07, and CORE-01 are complete. The next and only task eligible to start is **CORE-02 - Implement CPU collection and API**.
+SET-01 through SET-04, FND-01 through FND-07, and CORE-01 through CORE-03 are complete. The next and only task eligible to start is **CORE-04 - Implement RAM, swap, and PSI collection/API**.
 
-Wait for the exact authorization: `START TASK CORE-02`.
+Wait for the exact authorization: `START TASK CORE-04`.

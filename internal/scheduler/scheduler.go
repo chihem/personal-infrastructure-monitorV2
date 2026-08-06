@@ -31,6 +31,7 @@ type Options struct {
 	Host             host.Provider
 	Docker           docker.Provider
 	CollectorTimeout time.Duration
+	Recorder         Recorder
 
 	clock clock
 }
@@ -41,10 +42,15 @@ type CompletedRun struct {
 	DockerSnapshot any
 }
 
+type Recorder interface {
+	RecordCollection(context.Context, CompletedRun) error
+}
+
 type Service struct {
 	host             host.Provider
 	docker           docker.Provider
 	collectorTimeout time.Duration
+	recorder         Recorder
 	clock            clock
 
 	mu          sync.RWMutex
@@ -72,6 +78,7 @@ func New(options Options) (*Service, error) {
 		host:             options.Host,
 		docker:           options.Docker,
 		collectorTimeout: options.CollectorTimeout,
+		recorder:         options.Recorder,
 		clock:            options.clock,
 	}, nil
 }
@@ -187,6 +194,11 @@ func (service *Service) collect(ctx context.Context, trigger domain.CollectionTr
 		DockerSnapshot: dockerExecution.snapshot,
 	}
 	service.storeLastRun(completed)
+	if service.recorder != nil {
+		if err := service.recorder.RecordCollection(ctx, completed); err != nil {
+			return completed, fmt.Errorf("record completed collection: %w", err)
+		}
+	}
 	return completed, nil
 }
 

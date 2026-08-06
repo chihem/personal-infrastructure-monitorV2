@@ -1,7 +1,8 @@
-# Collection scheduling foundation
+# Collection scheduling
 
-FND-06 provides the orchestration boundary used by future host and Docker
-collectors. It does not read the host, access Docker, or persist samples yet.
+FND-06 established the orchestration boundary. CORE-02 connects the real CPU
+provider, history recorder, and production runtime. Memory, filesystem, and
+real Docker providers remain later tasks.
 
 ## Schedule
 
@@ -31,9 +32,10 @@ Host and Docker providers implement separate interfaces. They run concurrently,
 so the maximum collector concurrency is two. Both receive cancellable contexts
 and the same explicitly configured deadline.
 
-Provider snapshots are opaque to the scheduler. Future feature tasks will define
-validated host and Docker snapshot types. The scheduler retains a successful or
-partial snapshot even when the other provider fails.
+Provider snapshots remain opaque to the scheduler. The CPU provider now returns
+a validated typed snapshot; later feature tasks will extend the host side and
+replace the explicit Docker-unavailable provider. The scheduler retains a
+successful or partial snapshot even when the other provider fails.
 
 Provider results use bounded machine-readable error codes rather than raw error
 messages. A deadline, cancellation, or invalid provider result is converted to
@@ -57,9 +59,11 @@ and independent host and Docker outcomes.
   partial or failed: `partial`.
 - Neither provider returns usable data: `failed`.
 
-The result envelope keeps host and Docker snapshots separate from the persisted
-run metadata. CORE-01 will add the transaction that stores run records and
-sample rows in `history.db`.
+The result envelope keeps host and Docker snapshots separate. After a run is
+stored in memory, an optional recorder persists its metadata and supplied sample
+rows. Recorder errors are returned without erasing the in-memory run evidence.
+The production runtime retries the scheduler on the next minute cycle and logs
+only a stable event code rather than database or collector details.
 
 ## Testing
 

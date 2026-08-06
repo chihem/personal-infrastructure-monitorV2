@@ -1,6 +1,6 @@
 # History queries and rolling retention
 
-CORE-01 provides the bounded SQLite history repository used by later CPU, memory, filesystem, Docker, chart, and export tasks. It does not collect Linux or Docker data and does not add public API routes or UI pages.
+CORE-01 provides the bounded SQLite history repository used by CPU, memory, filesystem, Docker, chart, and export tasks. CORE-02 now stores CPU and load samples through this repository; the remaining collectors and product UI pages are still pending.
 
 ## Collection transactions
 
@@ -53,7 +53,7 @@ One cleanup batch transaction removes bounded groups of:
 - expired collection runs, with their sample rows removed through foreign-key cascades;
 - removed filesystem, block-device, and container identities only after their retained samples/events are gone.
 
-Batch size is limited to 1–1,000. A bounded multi-batch call reports `More: true` if backlog remains, allowing the caller to continue later without one long write lock. `RetentionRunInterval` defines the approved daily cadence; production lifecycle wiring will start this job when the real collection service is connected.
+Batch size is limited to 1–1,000. A bounded multi-batch call reports `More: true` if backlog remains, allowing the caller to continue later without one long write lock. Production runs cleanup once at startup and then every 24 hours. A remaining backlog is logged and left for the next bounded run instead of holding one long database write lock.
 
 The later CORE-18 task remains responsible for the separate combined 5 GiB database/backup ceiling. Time-based cleanup never deletes unexpired evidence to satisfy that ceiling.
 

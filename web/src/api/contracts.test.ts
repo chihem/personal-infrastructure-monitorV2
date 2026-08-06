@@ -6,9 +6,98 @@ import { describe, expect, it } from "vitest";
 import {
   ContractValidationError,
   parseChartSeries,
+  parseCPUCurrentResponse,
+  parseCPUHistoryResponse,
   parseMonitoringResponse,
   parseOperationalStatusResponse,
 } from "./contracts";
+
+describe("CPU endpoint contracts", () => {
+  const now = "2026-08-05T12:00:00Z";
+  const metric = (value: number, unit: "percent" | "load") => ({
+    availability: "available" as const,
+    value,
+    unit,
+    reasonCode: null,
+  });
+
+  it("parses dynamic current CPU data", () => {
+    const response: Record<string, any> = {
+      apiVersion: "v1",
+      requestId: "request-001",
+      generatedAt: now,
+      data: {
+        resource: { kind: "cpu", id: "host-cpu", displayName: "Overall CPU" },
+        freshness: { state: "fresh", observedAt: now, lastSuccessfulAt: now },
+        overall: metric(40, "percent"),
+        cores: [
+          { index: 0, usage: metric(30, "percent") },
+          { index: 5, usage: metric(50, "percent") },
+        ],
+        load: {
+          oneMinute: metric(0.5, "load"),
+          fiveMinutes: metric(0.4, "load"),
+          fifteenMinutes: metric(0.3, "load"),
+        },
+        logicalCpuCount: 2,
+      },
+      error: null,
+    };
+    expect(parseCPUCurrentResponse(response).data?.cores).toHaveLength(2);
+    response.data.cores[1].index = 0;
+    expect(() => parseCPUCurrentResponse(response)).toThrow(
+      ContractValidationError,
+    );
+  });
+
+  it("keeps unavailable history separate from gaps", () => {
+    const response: Record<string, any> = {
+      apiVersion: "v1",
+      requestId: "request-001",
+      generatedAt: now,
+      data: {
+        resource: { kind: "cpu", id: "host-cpu", displayName: "Overall CPU" },
+        metric: "overall",
+        coreIndex: null,
+        unit: "percent",
+        range: { preset: "last_5m", start: "2026-08-05T11:55:00Z", end: now },
+        bucketDurationSeconds: 60,
+        points: [
+          {
+            start: "2026-08-05T11:55:00Z",
+            end: "2026-08-05T11:56:00Z",
+            state: "unavailable",
+            observedSamples: 1,
+            availableSamples: 0,
+            minimum: null,
+            average: null,
+            maximum: null,
+          },
+          {
+            start: "2026-08-05T11:56:00Z",
+            end: "2026-08-05T11:57:00Z",
+            state: "gap",
+            observedSamples: 0,
+            availableSamples: 0,
+            minimum: null,
+            average: null,
+            maximum: null,
+          },
+        ],
+      },
+      error: null,
+    };
+    expect(
+      parseCPUHistoryResponse(response).data?.points.map(
+        (point) => point.state,
+      ),
+    ).toEqual(["unavailable", "gap"]);
+    response.data.points[1].average = 0;
+    expect(() => parseCPUHistoryResponse(response)).toThrow(
+      ContractValidationError,
+    );
+  });
+});
 
 const fixtures = [
   "snapshot-complete.json",

@@ -1,12 +1,12 @@
 # API Contract v1
 
-Status: **Defined through FND-07**
+Status: **Defined through CORE-02**
 Wire version: `v1`
 Transport timestamps: RFC 3339 in UTC
 
 ## Scope
 
-This document defines the data boundary shared by the Go backend and TypeScript frontend. FND-07 exposes the operational contracts at the private routes listed below. Monitoring-resource routes, real collectors, Docker calls, and data-backed UI screens remain later roadmap tasks.
+This document defines the data boundary shared by the Go backend and TypeScript frontend. FND-07 exposes the operational contracts at the private routes listed below, and CORE-02 adds the first real monitoring-resource routes for CPU. Other monitoring domains, Docker calls, and data-backed UI screens remain later roadmap tasks.
 
 The Go contract is under `internal/api/contracts/`. The TypeScript mirror and its safe runtime parsers are under `web/src/api/`. Shared examples are under `tests/fixtures/contracts/v1/`.
 
@@ -32,6 +32,8 @@ The private server currently exposes:
 | `/api/v1/health/ready` | `200` when required dependencies are usable | `503` during maintenance or when configuration/history storage is unavailable |
 | `/api/v1/health` | Compatibility alias for readiness | Same as `/api/v1/health/ready` |
 | `/api/v1/status` | `200` with the validated operational snapshot | `500` with a safe API error if an invalid snapshot reaches the handler |
+| `/api/v1/cpu` | `200` with current or honestly unavailable CPU evidence | `500` if invalid internal data reaches the handler; `503` if the CPU source is not wired |
+| `/api/v1/cpu/history` | `200` with bounded raw/aggregated CPU history | `400` for invalid query parameters; `503` when history is unavailable |
 
 Readiness requires a usable current or last-valid configuration, an available history database, and inactive maintenance mode. Audit-storage failure, use of previous settings, collectors that have not started, and unchecked Docker connectivity produce honest degraded or placeholder states without making read-only service unready.
 
@@ -109,6 +111,8 @@ The action enum intentionally excludes container creation/deletion, exec, image,
 - `nextCursor` is non-null only when `hasMore` is true.
 - `null` deliberately represents unavailable values and absent timestamps.
 - Empty arrays mean a successful result with no matching records.
+
+CPU history accepts `metric=overall|core|load_1|load_5|load_15` and an approved `range`. The core metric additionally requires `core=<non-negative index>`. Custom ranges require UTC `start` and `end`. Unknown and repeated parameters are rejected. History buckets expose start/end, observed/available counts, and minimum/average/maximum; `observed`, `unavailable`, and `gap` remain separate states. See [`cpu-backend.md`](cpu-backend.md).
 
 ## Errors and privacy
 

@@ -7,7 +7,7 @@ FND-05 provides the shared presentation and browser-state foundation for later m
 | Route | Current purpose |
 | --- | --- |
 | `/` | Honest overview shell and links to primary monitoring areas |
-| `/cpu` | CPU feature placeholder |
+| `/cpu` | Data-backed CPU performance page with current metrics and retained history |
 | `/memory` | Memory feature placeholder |
 | `/filesystems` | Filesystem feature placeholder |
 | `/docker` | Docker feature placeholder |
@@ -17,6 +17,8 @@ FND-05 provides the shared presentation and browser-state foundation for later m
 | Any other route | Localized not-found page |
 
 Wouter owns client-side navigation. The Go embedded-file handler returns the SPA entry point for extensionless paths, so a direct browser request to a known route can load the application. The earlier React Router recommendation was replaced because the npm registry reported high-severity advisories for every compatible published line checked during FND-05; the locked Wouter dependency passed the high-severity audit.
+
+CORE-03 replaces the CPU placeholder with the first complete product page. It uses the validated CORE-02 endpoints through TanStack Query, retains the one-minute refresh policy, and provides overall CPU, expandable dynamic vCPUs, load averages, threshold indicators, every approved range, custom Africa/Tunis boundaries, and an accessible chart alternative. See [`cpu-page.md`](cpu-page.md).
 
 ## Localization
 
@@ -40,7 +42,7 @@ Wouter owns client-side navigation. The Go embedded-file handler returns the SPA
 - Requests ask for JSON, disable browser caching, retain same-origin credentials, and reject redirects.
 - Failed responses produce a bounded status error and do not reflect arbitrary backend response bodies.
 - TanStack Query defaults to the approved one-minute foreground refresh interval, one retry for reads, cancellation through query signals, and no mutation retry.
-- No monitoring query is active in FND-05 because the data endpoints do not exist yet.
+- CPU current/history queries are now active. Other monitoring domains remain inactive until their APIs exist.
 
 ## Responsive and accessibility behavior
 

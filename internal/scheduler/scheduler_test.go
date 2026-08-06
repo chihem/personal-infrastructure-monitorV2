@@ -244,6 +244,56 @@ func TestInvalidProviderResultBecomesBoundedFailure(t *testing.T) {
 	}
 }
 
+func TestCompletedRunIsRecordedAfterInMemoryStatus(t *testing.T) {
+	t.Parallel()
+	clock := newFakeClock(time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC))
+	provider := &providerStub{collect: func(context.Context) collector.Result {
+		return collector.Success("snapshot")
+	}}
+	recorder := &recorderStub{}
+	service, err := New(Options{
+		Host: provider, Docker: provider, CollectorTimeout: 10 * time.Second,
+		clock: clock, Recorder: recorder,
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	completed, err := service.Trigger(context.Background())
+	if err != nil {
+		t.Fatalf("Trigger() error = %v", err)
+	}
+	if len(recorder.runs) != 1 || recorder.runs[0].Record.StartedAt != completed.Record.StartedAt {
+		t.Fatalf("recorded runs = %+v", recorder.runs)
+	}
+	if _, ok := service.LastRun(); !ok {
+		t.Fatal("completed run was not retained in memory")
+	}
+}
+
+func TestRecorderFailureIsReturnedWithoutLosingRunStatus(t *testing.T) {
+	t.Parallel()
+	clock := newFakeClock(time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC))
+	provider := &providerStub{collect: func(context.Context) collector.Result {
+		return collector.Success("snapshot")
+	}}
+	recorder := &recorderStub{err: errors.New("synthetic persistence failure")}
+	service, err := New(Options{
+		Host: provider, Docker: provider, CollectorTimeout: 10 * time.Second,
+		clock: clock, Recorder: recorder,
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	if _, err := service.Trigger(context.Background()); err == nil {
+		t.Fatal("Trigger() ignored recorder failure")
+	}
+	if _, ok := service.LastRun(); !ok {
+		t.Fatal("collector evidence was lost after recorder failure")
+	}
+}
+
 func TestCancellationStopsCollectorsAndRecordsFailure(t *testing.T) {
 	clock := newFakeClock(time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC))
 	started := make(chan struct{}, 2)
@@ -347,6 +397,16 @@ type triggerResult struct {
 type providerStub struct {
 	collect func(context.Context) collector.Result
 	calls   atomic.Int32
+}
+
+type recorderStub struct {
+	runs []CompletedRun
+	err  error
+}
+
+func (recorder *recorderStub) RecordCollection(_ context.Context, run CompletedRun) error {
+	recorder.runs = append(recorder.runs, run)
+	return recorder.err
 }
 
 func (provider *providerStub) Collect(ctx context.Context) collector.Result {
