@@ -2,6 +2,7 @@ import { Route, Switch } from "wouter";
 
 import { AppShell } from "../components/AppShell";
 import { CPUPage } from "../features/cpu/CPUPage";
+import { MemoryPage } from "../features/memory/MemoryPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { OverviewPage } from "../pages/OverviewPage";
 import { PlaceholderPage } from "../pages/PlaceholderPage";
@@ -12,9 +13,7 @@ export function AppRoutes() {
       <Switch>
         <Route path="/" component={OverviewPage} />
         <Route path="/cpu" component={CPUPage} />
-        <Route path="/memory">
-          <PlaceholderPage page="memory" />
-        </Route>
+        <Route path="/memory" component={MemoryPage} />
         <Route path="/filesystems">
           <PlaceholderPage page="filesystems" />
         </Route>

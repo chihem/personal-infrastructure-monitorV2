@@ -4,7 +4,7 @@ Infrastructure Monitor is a private dashboard for monitoring and administering o
 
 The former Windows/Python/Vinext/Cloudflare prototype has been retired from the active development line. It remains recoverable from the Git tag `legacy-prototype-v0.2.0`.
 
-The replacement application uses Go for the backend and React/TypeScript/Vite for the frontend. Its private HTTP lifecycle, configuration and storage foundations, API contracts, responsive bilingual UI shell, collection scheduler, operational self-status, bounded history repository, real CPU backend/page, and RAM/swap/PSI backend are implemented. Other monitoring collectors and data-backed product pages are not implemented yet.
+The replacement application uses Go for the backend and React/TypeScript/Vite for the frontend. Its private HTTP lifecycle, configuration and storage foundations, API contracts, responsive bilingual UI shell, collection scheduler, operational self-status, bounded history repository, real CPU backend/page, and RAM/swap/PSI backend/page are implemented. Other monitoring collectors and data-backed product pages are not implemented yet.
 
 The approved project documents are:
 
@@ -22,6 +22,7 @@ The approved project documents are:
 - [`docs/cpu-backend.md`](docs/cpu-backend.md)
 - [`docs/cpu-page.md`](docs/cpu-page.md)
 - [`docs/memory-backend.md`](docs/memory-backend.md)
+- [`docs/memory-page.md`](docs/memory-page.md)
 
 Implementation is task-gated. Only a task explicitly started by the user may be implemented.
 
@@ -38,7 +39,7 @@ Ordinary Go tests and development builds embed a small tracked fallback page and
 
 ## Frontend foundation
 
-The dark responsive shell provides routes for Overview, CPU, Memory, Filesystems, Docker, Events, Audit, and Backups. CPU is now a complete data-backed monitoring page; the remaining product routes stay honest placeholders until their roadmap tasks add data.
+The dark responsive shell provides routes for Overview, CPU, Memory, Filesystems, Docker, Events, Audit, and Backups. CPU and Memory are now complete data-backed monitoring pages; the remaining product routes stay honest placeholders until their roadmap tasks add data.
 
 English and French can be switched at runtime. The first visit follows a supported browser language and otherwise uses English; only the `pim.language` preference is stored in browser storage. Shared status badges use text, icons, and color together. See [`docs/ui-foundation.md`](docs/ui-foundation.md) for routes, state primitives, API-query defaults, and testing boundaries.
 
@@ -59,6 +60,8 @@ The dedicated CPU page presents the current overall reading first, expandable lo
 ## Memory backend
 
 The production host collector now reads aggregate Linux memory counters and PSI once per minute. It keeps total, used, available, free, cached, and buffered memory distinct; reports configured or absent swap honestly; and retains ordinary RAM evidence when PSI alone becomes unavailable. `GET /api/v1/memory` exposes current/freshness-aware evidence, while `GET /api/v1/memory/history` exposes bounded memory, swap, and selected pressure history. See [`docs/memory-backend.md`](docs/memory-backend.md).
+
+The dedicated Memory page presents RAM utilization with 85%/95% health thresholds, explains free versus available memory, handles configured/absent/unknown swap, shows current `some`/`full` PSI evidence, and exposes every retained memory range and metric with honest gaps and accessible summaries. The container RAM ranking remains explicitly unavailable until Docker collection is implemented. See [`docs/memory-page.md`](docs/memory-page.md).
 
 ## Private runtime foundation
 

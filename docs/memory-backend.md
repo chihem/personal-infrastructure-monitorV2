@@ -69,11 +69,11 @@ Allowlisted metrics:
 
 All approved ranges are accepted. Custom requests additionally require RFC 3339 UTC `start` and `end`. Unknown, repeated, non-UTC, future, expired, or oversized ranges are rejected. Responses are bounded to 600 buckets.
 
-The frontend runtime parsers independently validate resource kind, units, freshness, metric availability, range shape, bucket counts, summaries, and gap semantics before CORE-05 renders the data.
+The frontend runtime parsers independently validate resource kind, units, freshness, metric availability, range shape, bucket counts, summaries, and gap semantics before the CORE-05 page renders the data.
 
 ## Deferred container ranking
 
-CORE-04 does not invent container RAM usage. CORE-05 will present an explicit unavailable/empty ranking section. CORE-08 later supplies normalized Docker memory measurements, and CORE-09 connects those measurements to the RAM page.
+CORE-04 does not invent container RAM usage. CORE-05 presents an explicit unavailable ranking section and a tested empty-state contract. CORE-08 later supplies normalized Docker memory measurements, and CORE-09 connects those measurements to the RAM page. See [`memory-page.md`](memory-page.md).
 
 ## Verification
 
