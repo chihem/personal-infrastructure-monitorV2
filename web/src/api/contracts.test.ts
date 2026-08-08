@@ -8,6 +8,8 @@ import {
   parseChartSeries,
   parseCPUCurrentResponse,
   parseCPUHistoryResponse,
+  parseMemoryCurrentResponse,
+  parseMemoryHistoryResponse,
   parseMonitoringResponse,
   parseOperationalStatusResponse,
 } from "./contracts";
@@ -94,6 +96,115 @@ describe("CPU endpoint contracts", () => {
     ).toEqual(["unavailable", "gap"]);
     response.data.points[1].average = 0;
     expect(() => parseCPUHistoryResponse(response)).toThrow(
+      ContractValidationError,
+    );
+  });
+});
+
+describe("memory endpoint contracts", () => {
+  const now = "2026-08-06T12:00:00Z";
+  const metric = (
+    value: number,
+    unit: "bytes" | "percent" | "microseconds",
+  ) => ({
+    availability: "available" as const,
+    value,
+    unit,
+    reasonCode: null,
+  });
+  const unavailable = (
+    unit: "bytes" | "percent" | "microseconds",
+    reasonCode = "not_configured",
+  ) => ({
+    availability: "unavailable" as const,
+    value: null,
+    unit,
+    reasonCode,
+  });
+
+  it("parses distinct RAM, no-swap, and pressure fields", () => {
+    const window = {
+      average10Seconds: metric(0.1, "percent"),
+      average60Seconds: metric(0.05, "percent"),
+      average300Seconds: metric(0, "percent"),
+      total: metric(100, "microseconds"),
+    };
+    const response: Record<string, any> = {
+      apiVersion: "v1",
+      requestId: "request-memory",
+      generatedAt: now,
+      data: {
+        resource: { kind: "memory", id: "host-memory", displayName: "Memory" },
+        freshness: { state: "fresh", observedAt: now, lastSuccessfulAt: now },
+        total: metric(11_811_160_064, "bytes"),
+        used: metric(3_221_225_472, "bytes"),
+        available: metric(8_589_934_592, "bytes"),
+        free: metric(2_147_483_648, "bytes"),
+        cached: metric(5_368_709_120, "bytes"),
+        buffered: metric(268_435_456, "bytes"),
+        usage: metric(27.3, "percent"),
+        swap: {
+          configured: false,
+          total: unavailable("bytes"),
+          used: unavailable("bytes"),
+          free: unavailable("bytes"),
+        },
+        pressure: { some: window, full: window },
+      },
+      error: null,
+    };
+    expect(parseMemoryCurrentResponse(response).data?.swap.configured).toBe(
+      false,
+    );
+    response.data.pressure.some.total.unit = "bytes";
+    expect(() => parseMemoryCurrentResponse(response)).toThrow(
+      ContractValidationError,
+    );
+  });
+
+  it("keeps memory-history unavailable buckets separate from gaps", () => {
+    const response: Record<string, any> = {
+      apiVersion: "v1",
+      requestId: "request-memory-history",
+      generatedAt: now,
+      data: {
+        resource: { kind: "memory", id: "host-memory", displayName: "Memory" },
+        metric: "usage",
+        unit: "percent",
+        range: { preset: "last_5m", start: "2026-08-06T11:55:00Z", end: now },
+        bucketDurationSeconds: 60,
+        points: [
+          {
+            start: "2026-08-06T11:55:00Z",
+            end: "2026-08-06T11:56:00Z",
+            state: "unavailable",
+            observedSamples: 1,
+            availableSamples: 0,
+            minimum: null,
+            average: null,
+            maximum: null,
+          },
+          {
+            start: "2026-08-06T11:56:00Z",
+            end: "2026-08-06T11:57:00Z",
+            state: "gap",
+            observedSamples: 0,
+            availableSamples: 0,
+            minimum: null,
+            average: null,
+            maximum: null,
+          },
+        ],
+      },
+      error: null,
+    };
+    expect(
+      parseMemoryHistoryResponse(response).data?.points.map(
+        (point) => point.state,
+      ),
+    ).toEqual(["unavailable", "gap"]);
+    response.data.unit = "bytes";
+    expect(() => parseMemoryHistoryResponse(response)).toThrow(
       ContractValidationError,
     );
   });

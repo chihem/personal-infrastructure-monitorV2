@@ -1,4 +1,4 @@
-// Package host defines the provider boundary for Linux host measurements.
-// CPU collection is implemented; memory and filesystem collectors follow in
-// their separately authorized roadmap tasks.
+// Package host composes the validated Linux CPU and memory collectors behind
+// the scheduler's host-provider boundary. Filesystem collection follows in its
+// separately authorized roadmap task.
 package host

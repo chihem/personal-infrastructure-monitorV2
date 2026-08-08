@@ -76,6 +76,16 @@ func TestRunStartsServesAndStops(t *testing.T) {
 		t.Fatalf("CPU response status = %d, body = %s", cpuResponse.StatusCode, cpuBody)
 	}
 
+	memoryResponse := requestUntilReady(t, client, baseURL+"/api/v1/memory")
+	memoryBody, err := io.ReadAll(memoryResponse.Body)
+	memoryResponse.Body.Close()
+	if err != nil {
+		t.Fatalf("read memory response: %v", err)
+	}
+	if memoryResponse.StatusCode != http.StatusOK || !strings.Contains(string(memoryBody), `"freshness":{"state":"unavailable"`) {
+		t.Fatalf("memory response status = %d, body = %s", memoryResponse.StatusCode, memoryBody)
+	}
+
 	cancel()
 	if err := waitFor(t, result, "Run result"); err != nil {
 		t.Fatalf("Run() error = %v", err)

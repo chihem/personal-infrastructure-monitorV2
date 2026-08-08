@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/chihem/personal-infrastructure-monitorV2/internal/collector/host"
 	hostcpu "github.com/chihem/personal-infrastructure-monitorV2/internal/collector/host/cpu"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/domain"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/scheduler"
@@ -17,41 +18,70 @@ type collectionRecorder struct {
 func (recorder collectionRecorder) RecordCollection(ctx context.Context, completed scheduler.CompletedRun) error {
 	record := history.CollectionRecord{Run: completed.Record}
 	if completed.Record.HostResult.Status != domain.CollectionFailed {
-		snapshot, ok := completed.HostSnapshot.(hostcpu.Snapshot)
+		snapshot, ok := completed.HostSnapshot.(host.Snapshot)
 		if !ok {
 			return fmt.Errorf("host collector returned unexpected snapshot type %T", completed.HostSnapshot)
 		}
 		if err := snapshot.Validate(); err != nil {
-			return fmt.Errorf("validate CPU snapshot: %w", err)
+			return fmt.Errorf("validate host snapshot: %w", err)
 		}
 		record.Host = hostHistorySample(snapshot)
-		record.CPUCores = coreHistorySamples(snapshot)
+		if snapshot.CPU != nil {
+			record.CPUCores = coreHistorySamples(*snapshot.CPU)
+		}
 	}
 	_, err := recorder.history.RecordCollection(ctx, record)
 	return err
 }
 
-func hostHistorySample(snapshot hostcpu.Snapshot) *history.HostSampleRecord {
+func hostHistorySample(snapshot host.Snapshot) *history.HostSampleRecord {
 	notCollected := domain.ReasonNotCollected
 	sample := &history.HostSampleRecord{
-		ObservedAt:           snapshot.ObservedAt,
-		OverallCPUPercent:    metricValue(snapshot.Overall),
-		Load1:                metricValue(snapshot.Load.OneMinute),
-		Load5:                metricValue(snapshot.Load.FiveMinutes),
-		Load15:               metricValue(snapshot.Load.FifteenMinutes),
 		PSIAvailability:      domain.AvailabilityUnavailable,
 		PSIUnavailableReason: &notCollected,
 	}
-	if sample.OverallCPUPercent != nil || sample.Load1 != nil || sample.Load5 != nil || sample.Load15 != nil {
+	if snapshot.CPU != nil {
+		sample.ObservedAt = snapshot.CPU.ObservedAt
+		sample.OverallCPUPercent = metricValue(snapshot.CPU.Overall)
+		sample.Load1 = metricValue(snapshot.CPU.Load.OneMinute)
+		sample.Load5 = metricValue(snapshot.CPU.Load.FiveMinutes)
+		sample.Load15 = metricValue(snapshot.CPU.Load.FifteenMinutes)
+	}
+	if snapshot.Memory != nil {
+		memory := snapshot.Memory
+		if sample.ObservedAt.IsZero() || memory.ObservedAt.After(sample.ObservedAt) {
+			sample.ObservedAt = memory.ObservedAt
+		}
+		sample.MemoryTotalBytes = integerMetricValue(memory.Total)
+		sample.MemoryUsedBytes = integerMetricValue(memory.Used)
+		sample.MemoryAvailableBytes = integerMetricValue(memory.Available)
+		sample.MemoryFreeBytes = integerMetricValue(memory.Free)
+		sample.MemoryCachedBytes = integerMetricValue(memory.Cached)
+		sample.MemoryBufferedBytes = integerMetricValue(memory.Buffered)
+		sample.MemoryUsagePercent = metricValue(memory.Usage)
+		sample.SwapTotalBytes = integerMetricValue(memory.Swap.Total)
+		sample.SwapUsedBytes = integerMetricValue(memory.Swap.Used)
+		sample.PSIAvailability = memory.Pressure.Availability
+		sample.PSIUnavailableReason = cloneReason(memory.Pressure.ReasonCode)
+		sample.MemoryPSISomeAverage10 = metricValue(memory.Pressure.Some.Average10Seconds)
+		sample.MemoryPSIFullAverage10 = metricValue(memory.Pressure.Full.Average10Seconds)
+		sample.MemoryPSISomeTotalUS = integerMetricValue(memory.Pressure.Some.Total)
+		sample.MemoryPSIFullTotalUS = integerMetricValue(memory.Pressure.Full.Total)
+	}
+	if anyHostValue(sample) {
 		sample.Availability = domain.AvailabilityAvailable
 		return sample
 	}
 	sample.Availability = domain.AvailabilityUnavailable
-	sample.UnavailableReason = metricReason(snapshot.Overall)
-	if sample.UnavailableReason == nil {
-		sample.UnavailableReason = &notCollected
-	}
+	sample.UnavailableReason = &notCollected
 	return sample
+}
+
+func anyHostValue(sample *history.HostSampleRecord) bool {
+	return sample.OverallCPUPercent != nil || sample.Load1 != nil || sample.Load5 != nil || sample.Load15 != nil ||
+		sample.MemoryTotalBytes != nil || sample.MemoryUsedBytes != nil || sample.MemoryAvailableBytes != nil ||
+		sample.MemoryFreeBytes != nil || sample.MemoryCachedBytes != nil || sample.MemoryBufferedBytes != nil ||
+		sample.MemoryUsagePercent != nil || sample.SwapTotalBytes != nil || sample.SwapUsedBytes != nil
 }
 
 func coreHistorySamples(snapshot hostcpu.Snapshot) []history.CPUCoreSampleRecord {
@@ -76,12 +106,28 @@ func metricValue(metric domain.Metric[float64]) *float64 {
 	return &value
 }
 
-func metricReason(metric domain.Metric[float64]) *domain.UnavailabilityReason {
+func metricReason[T any](metric domain.Metric[T]) *domain.UnavailabilityReason {
 	if metric.ReasonCode == nil {
 		return nil
 	}
 	reason := *metric.ReasonCode
 	return &reason
+}
+
+func integerMetricValue(metric domain.Metric[int64]) *int64 {
+	if metric.Value == nil {
+		return nil
+	}
+	value := *metric.Value
+	return &value
+}
+
+func cloneReason(reason *domain.UnavailabilityReason) *domain.UnavailabilityReason {
+	if reason == nil {
+		return nil
+	}
+	value := *reason
+	return &value
 }
 
 var _ scheduler.Recorder = collectionRecorder{}

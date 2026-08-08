@@ -32,10 +32,11 @@ Host and Docker providers implement separate interfaces. They run concurrently,
 so the maximum collector concurrency is two. Both receive cancellable contexts
 and the same explicitly configured deadline.
 
-Provider snapshots remain opaque to the scheduler. The CPU provider now returns
-a validated typed snapshot; later feature tasks will extend the host side and
-replace the explicit Docker-unavailable provider. The scheduler retains a
-successful or partial snapshot even when the other provider fails.
+Provider snapshots remain opaque to the scheduler. The host provider now
+combines validated CPU and memory snapshots; one host subcollector may fail
+without discarding evidence from the other. A later feature task will replace
+the explicit Docker-unavailable provider. The scheduler retains a successful
+or partial snapshot even when the other provider fails.
 
 Provider results use bounded machine-readable error codes rather than raw error
 messages. A deadline, cancellation, or invalid provider result is converted to

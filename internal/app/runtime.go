@@ -13,7 +13,9 @@ import (
 
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/api"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/collector/docker"
+	"github.com/chihem/personal-infrastructure-monitorV2/internal/collector/host"
 	hostcpu "github.com/chihem/personal-infrastructure-monitorV2/internal/collector/host/cpu"
+	hostmemory "github.com/chihem/personal-infrastructure-monitorV2/internal/collector/host/memory"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/config"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/observability"
 	"github.com/chihem/personal-infrastructure-monitorV2/internal/scheduler"
@@ -127,8 +129,16 @@ func Run(ctx context.Context, options Options) (runErr error) {
 	if err != nil {
 		return errors.Join(fmt.Errorf("create CPU collector: %w", err), listener.Close(), historyDatabase.Close())
 	}
+	memoryCollector, err := hostmemory.NewWithOptions(hostmemory.Options{Now: options.now})
+	if err != nil {
+		return errors.Join(fmt.Errorf("create memory collector: %w", err), listener.Close(), historyDatabase.Close())
+	}
+	hostCollector, err := host.NewCollector(cpuCollector, memoryCollector)
+	if err != nil {
+		return errors.Join(fmt.Errorf("create host collector: %w", err), listener.Close(), historyDatabase.Close())
+	}
 	collectionScheduler, err := scheduler.New(scheduler.Options{
-		Host: cpuCollector, Docker: docker.UnavailableProvider{}, CollectorTimeout: defaultCollectorTime,
+		Host: hostCollector, Docker: docker.UnavailableProvider{}, CollectorTimeout: defaultCollectorTime,
 		Recorder: collectionRecorder{history: historyRepository},
 	})
 	if err != nil {
@@ -156,8 +166,12 @@ func Run(ctx context.Context, options Options) (runErr error) {
 		collector: cpuCollector, history: historyRepository, now: options.now,
 		staleAfter: time.Duration(settings.Collection.StaleAfterSecs) * time.Second,
 	}
+	memorySource := memoryDataSource{
+		collector: memoryCollector, history: historyRepository, now: options.now,
+		staleAfter: time.Duration(settings.Collection.StaleAfterSecs) * time.Second,
+	}
 	handler := api.NewHandlerWithOptions(api.HandlerOptions{
-		WebHandler: web.Handler(), Status: status.snapshot, CPU: cpuSource, Logger: options.Logger,
+		WebHandler: web.Handler(), Status: status.snapshot, CPU: cpuSource, Memory: memorySource, Logger: options.Logger,
 	})
 	server := api.NewServer(listener.Addr().String(), settings.Server, handler)
 

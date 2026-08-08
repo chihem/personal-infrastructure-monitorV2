@@ -1,12 +1,12 @@
 # API Contract v1
 
-Status: **Defined through CORE-02**
+Status: **Defined through CORE-04**
 Wire version: `v1`
 Transport timestamps: RFC 3339 in UTC
 
 ## Scope
 
-This document defines the data boundary shared by the Go backend and TypeScript frontend. FND-07 exposes the operational contracts at the private routes listed below, and CORE-02 adds the first real monitoring-resource routes for CPU. Other monitoring domains, Docker calls, and data-backed UI screens remain later roadmap tasks.
+This document defines the data boundary shared by the Go backend and TypeScript frontend. FND-07 exposes the operational contracts at the private routes listed below, CORE-02 adds CPU routes, and CORE-04 adds RAM/swap/PSI routes. Other monitoring domains, Docker calls, and data-backed UI screens remain later roadmap tasks.
 
 The Go contract is under `internal/api/contracts/`. The TypeScript mirror and its safe runtime parsers are under `web/src/api/`. Shared examples are under `tests/fixtures/contracts/v1/`.
 
@@ -34,6 +34,8 @@ The private server currently exposes:
 | `/api/v1/status` | `200` with the validated operational snapshot | `500` with a safe API error if an invalid snapshot reaches the handler |
 | `/api/v1/cpu` | `200` with current or honestly unavailable CPU evidence | `500` if invalid internal data reaches the handler; `503` if the CPU source is not wired |
 | `/api/v1/cpu/history` | `200` with bounded raw/aggregated CPU history | `400` for invalid query parameters; `503` when history is unavailable |
+| `/api/v1/memory` | `200` with current or honestly unavailable RAM, swap, and PSI evidence | `500` if invalid internal data reaches the handler; `503` if the memory source is not wired |
+| `/api/v1/memory/history` | `200` with bounded raw/aggregated memory history | `400` for invalid query parameters; `503` when history is unavailable |
 
 Readiness requires a usable current or last-valid configuration, an available history database, and inactive maintenance mode. Audit-storage failure, use of previous settings, collectors that have not started, and unchecked Docker connectivity produce honest degraded or placeholder states without making read-only service unready.
 
@@ -113,6 +115,8 @@ The action enum intentionally excludes container creation/deletion, exec, image,
 - Empty arrays mean a successful result with no matching records.
 
 CPU history accepts `metric=overall|core|load_1|load_5|load_15` and an approved `range`. The core metric additionally requires `core=<non-negative index>`. Custom ranges require UTC `start` and `end`. Unknown and repeated parameters are rejected. History buckets expose start/end, observed/available counts, and minimum/average/maximum; `observed`, `unavailable`, and `gap` remain separate states. See [`cpu-backend.md`](cpu-backend.md).
+
+Memory history accepts the allowlisted metrics documented in [`memory-backend.md`](memory-backend.md) plus an approved `range`. Custom ranges require UTC `start` and `end`; unknown or repeated parameters are rejected. The same bucket and gap semantics apply. Current pressure contains the kernel's 10, 60, and 300-second averages plus cumulative microseconds; retained pressure history stores the selected 10-second averages and cumulative totals.
 
 ## Errors and privacy
 

@@ -106,6 +106,51 @@ func TestEmptyMetricRangeReturnsOnlyHonestGaps(t *testing.T) {
 	}
 }
 
+func TestMemoryAndPSIHistoryUseIndependentAvailabilityAndSummaries(t *testing.T) {
+	t.Parallel()
+	repository, database := openTestRepository(t)
+	defer database.Close()
+	start := time.Date(2026, 8, 6, 12, 0, 0, 0, time.UTC)
+	usageOne, usageTwo, pressure := 25.0, 75.0, 0.2
+	pressureTotal := int64(1200)
+	notSupported := domain.ReasonNotSupported
+	for index, usage := range []*float64{&usageOne, &usageTwo} {
+		sample := &HostSampleRecord{
+			ObservedAt:   start.Add(time.Duration(index) * time.Minute),
+			Availability: domain.AvailabilityAvailable, MemoryUsagePercent: usage,
+			PSIAvailability: domain.AvailabilityUnavailable, PSIUnavailableReason: &notSupported,
+		}
+		if index == 1 {
+			sample.PSIAvailability = domain.AvailabilityAvailable
+			sample.PSIUnavailableReason = nil
+			sample.MemoryPSISomeAverage10 = &pressure
+			sample.MemoryPSISomeTotalUS = &pressureTotal
+		}
+		if _, err := repository.RecordCollection(context.Background(), CollectionRecord{
+			Run: validCollectionRun(sample.ObservedAt), Host: sample,
+		}); err != nil {
+			t.Fatalf("RecordCollection(%d) error = %v", index, err)
+		}
+	}
+	rangeValue := domain.ResolvedRange{Preset: domain.RangeLast5Minutes, Start: start, End: start.Add(5 * time.Minute)}
+	memorySeries, err := repository.QueryMetricSeries(context.Background(), MetricQuery{Metric: MetricMemoryUsagePercent, Range: rangeValue})
+	if err != nil {
+		t.Fatalf("memory series error = %v", err)
+	}
+	if memorySeries.Points[0].Average == nil || *memorySeries.Points[0].Average != 25 ||
+		memorySeries.Points[1].Average == nil || *memorySeries.Points[1].Average != 75 {
+		t.Fatalf("memory summaries = %+v", memorySeries.Points[:2])
+	}
+	pressureSeries, err := repository.QueryMetricSeries(context.Background(), MetricQuery{Metric: MetricMemoryPSISomeAverage10, Range: rangeValue})
+	if err != nil {
+		t.Fatalf("pressure series error = %v", err)
+	}
+	if pressureSeries.Points[0].State != MetricPointUnavailable || pressureSeries.Points[1].State != MetricPointObserved ||
+		pressureSeries.Points[1].Average == nil || *pressureSeries.Points[1].Average != pressure {
+		t.Fatalf("pressure states = %+v", pressureSeries.Points[:2])
+	}
+}
+
 func TestConcurrentMetricReadsAndCollectionWrites(t *testing.T) {
 	repository, database := openTestRepository(t)
 	defer database.Close()

@@ -1,12 +1,12 @@
 # History queries and rolling retention
 
-CORE-01 provides the bounded SQLite history repository used by CPU, memory, filesystem, Docker, chart, and export tasks. CORE-02 now stores CPU and load samples through this repository; the remaining collectors and product UI pages are still pending.
+CORE-01 provides the bounded SQLite history repository used by CPU, memory, filesystem, Docker, chart, and export tasks. CORE-02 stores CPU/load samples, and CORE-04 adds RAM, swap, and selected PSI samples. The remaining collectors and the RAM product page are still pending.
 
 ## Collection transactions
 
-`RecordCollection` stores one validated collection run, its optional host sample, and its dynamic per-vCPU samples in one short transaction. Either every supplied row commits or none of them does. A failed or partial run retains independent host and Docker status/error codes.
+`RecordCollection` stores one validated collection run, its optional combined CPU/memory host sample, and its dynamic per-vCPU samples in one short transaction. Either every supplied row commits or none of them does. A failed or partial run retains independent host and Docker status/error codes.
 
-The host record already supports the approved CPU, load, memory, swap, and memory-PSI fields. Filesystem, block-device, and container tables remain in the schema and will receive typed write methods when their collectors define the corresponding validated snapshots. This avoids guessing those collector models in CORE-01.
+The host record stores approved CPU, load, memory, swap, and memory-PSI fields. Current PSI exposes every kernel window; retained PSI stores `avg10` plus cumulative microseconds for both `some` and `full`. Filesystem, block-device, and container tables remain pending their collectors.
 
 All product timestamps are UTC Unix seconds in SQLite. Integer byte counters remain integers in storage. Chart queries convert the selected numeric metric to a floating-point presentation value; later raw exports will read the typed stored columns directly so integer precision is not discarded.
 

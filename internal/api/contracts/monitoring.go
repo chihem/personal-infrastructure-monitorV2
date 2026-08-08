@@ -133,7 +133,7 @@ type MemoryPressure struct {
 }
 
 type SwapSnapshot struct {
-	Configured bool                 `json:"configured"`
+	Configured *bool                `json:"configured"`
 	Total      domain.Metric[int64] `json:"total"`
 	Used       domain.Metric[int64] `json:"used"`
 	Free       domain.Metric[int64] `json:"free"`

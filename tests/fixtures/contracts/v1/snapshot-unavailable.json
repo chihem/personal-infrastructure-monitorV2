@@ -122,7 +122,7 @@
         "reasonCode": "not_collected"
       },
       "swap": {
-        "configured": false,
+        "configured": null,
         "total": {
           "availability": "unavailable",
           "value": null,

@@ -1,6 +1,6 @@
 # Runtime foundation
 
-FND-04 provides the executable base for the Infrastructure Monitor. It does not collect host or Docker measurements yet.
+FND-04 provides the executable base for the Infrastructure Monitor. CORE-02 and CORE-04 now add the production CPU and memory collectors; Docker collection remains pending.
 
 ## Startup sequence
 
@@ -26,6 +26,8 @@ Startup never falls back to `0.0.0.0`, `::`, another interface, or localhost. Th
 | `/api/v1/health/ready` | Required-dependency readiness; returns `200` or `503` |
 | `/api/v1/health` | Compatibility alias for readiness |
 | `/api/v1/status` | Bounded internal operational snapshot |
+| `/api/v1/cpu`, `/api/v1/cpu/history` | Current and retained CPU evidence |
+| `/api/v1/memory`, `/api/v1/memory/history` | Current and retained RAM, swap, and PSI evidence |
 | Other `/api/` paths | JSON not-found response |
 
 Readiness requires usable configuration, available history storage, and inactive maintenance mode. Audit-storage failure degrades read-only operation but does not make it unready. The status snapshot also reports database sizes when safely readable, real collector timing when a run exists, and explicit `not_checked` or `not_implemented` placeholders for Docker connectivity and backups.

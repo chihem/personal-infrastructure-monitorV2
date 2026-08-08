@@ -4,7 +4,7 @@ Infrastructure Monitor is a private dashboard for monitoring and administering o
 
 The former Windows/Python/Vinext/Cloudflare prototype has been retired from the active development line. It remains recoverable from the Git tag `legacy-prototype-v0.2.0`.
 
-The replacement application uses Go for the backend and React/TypeScript/Vite for the frontend. Its private HTTP lifecycle, configuration and storage foundations, API contracts, responsive bilingual UI shell, collection scheduler, operational self-status, bounded history repository, and real CPU backend are implemented. Other monitoring collectors and data-backed product pages are not implemented yet.
+The replacement application uses Go for the backend and React/TypeScript/Vite for the frontend. Its private HTTP lifecycle, configuration and storage foundations, API contracts, responsive bilingual UI shell, collection scheduler, operational self-status, bounded history repository, real CPU backend/page, and RAM/swap/PSI backend are implemented. Other monitoring collectors and data-backed product pages are not implemented yet.
 
 The approved project documents are:
 
@@ -21,6 +21,7 @@ The approved project documents are:
 - [`docs/history.md`](docs/history.md)
 - [`docs/cpu-backend.md`](docs/cpu-backend.md)
 - [`docs/cpu-page.md`](docs/cpu-page.md)
+- [`docs/memory-backend.md`](docs/memory-backend.md)
 
 Implementation is task-gated. Only a task explicitly started by the user may be implemented.
 
@@ -43,17 +44,21 @@ English and French can be switched at runtime. The first visit follows a support
 
 ## Collection scheduling foundation
 
-The scheduler aligns automatic collection to one-minute boundaries, rejects overlapping manual refreshes, runs host and Docker providers with explicit deadlines and cancellation, and retains partial results without inventing missed samples. The real CPU provider is active; Docker remains an explicit unavailable provider until its core-feature task. See [`docs/scheduling.md`](docs/scheduling.md) for the execution and failure rules.
+The scheduler aligns automatic collection to one-minute boundaries, rejects overlapping manual refreshes, runs host and Docker providers with explicit deadlines and cancellation, and retains partial results without inventing missed samples. The host provider now composes real CPU and memory collectors; Docker remains an explicit unavailable provider until its core-feature task. See [`docs/scheduling.md`](docs/scheduling.md) for the execution and failure rules.
 
 ## History foundation
 
-The history repository atomically records collection-run, host, and dynamic per-vCPU rows. It resolves every approved UTC range, returns raw one-minute chart positions through six hours, aggregates longer ranges to at most 600 buckets while retaining minimum/average/maximum, and distinguishes unavailable evidence from true gaps. Rolling cleanup removes only data older than 14 days in bounded transactions. See [`docs/history.md`](docs/history.md).
+The history repository atomically records collection-run, host CPU/memory, and dynamic per-vCPU rows. It resolves every approved UTC range, returns raw one-minute chart positions through six hours, aggregates longer ranges to at most 600 buckets while retaining minimum/average/maximum, and distinguishes unavailable evidence from true gaps. Rolling cleanup removes only data older than 14 days in bounded transactions. See [`docs/history.md`](docs/history.md).
 
 ## CPU backend
 
 The production scheduler now reads cumulative CPU counters and load averages once per minute, discovers logical CPUs dynamically, and persists each completed CPU snapshot. `GET /api/v1/cpu` exposes current/freshness-aware evidence, while `GET /api/v1/cpu/history` exposes bounded overall, per-vCPU, and load history. First readings, topology changes, counter resets, unavailable data, and gaps remain explicit. See [`docs/cpu-backend.md`](docs/cpu-backend.md).
 
 The dedicated CPU page presents the current overall reading first, expandable logical-vCPU details, Linux load averages, 85%/95% threshold indicators, every approved history range, custom Africa/Tunis periods, and minimum/average/peak summaries. Its ECharts visualization leaves gaps disconnected and is paired with a readable summary and expandable table. See [`docs/cpu-page.md`](docs/cpu-page.md).
+
+## Memory backend
+
+The production host collector now reads aggregate Linux memory counters and PSI once per minute. It keeps total, used, available, free, cached, and buffered memory distinct; reports configured or absent swap honestly; and retains ordinary RAM evidence when PSI alone becomes unavailable. `GET /api/v1/memory` exposes current/freshness-aware evidence, while `GET /api/v1/memory/history` exposes bounded memory, swap, and selected pressure history. See [`docs/memory-backend.md`](docs/memory-backend.md).
 
 ## Private runtime foundation
 
@@ -66,6 +71,8 @@ The current private endpoints are:
 - `/api/v1/health/ready` - readiness of the required configuration and history-storage dependencies.
 - `/api/v1/health` - compatibility alias for readiness.
 - `/api/v1/status` - bounded operational state, dependency states, database sizes, and collection timing.
+- `/api/v1/cpu` and `/api/v1/cpu/history` - current and historical CPU evidence.
+- `/api/v1/memory` and `/api/v1/memory/history` - current and historical RAM, swap, and pressure evidence.
 
 Production defaults use `/etc/pim/settings.toml`, `/var/lib/pim/last-valid-settings.toml`, `/var/lib/pim/history.db`, and `/var/lib/pim/audit.db`. The settings directory must exist before startup; later deployment tasks will provision it and the service account. See [`docs/runtime-foundation.md`](docs/runtime-foundation.md) for lifecycle and security details.
 

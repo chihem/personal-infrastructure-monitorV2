@@ -268,7 +268,7 @@ export interface MemorySnapshot {
   buffered: Metric;
   usage: Metric;
   swap: {
-    configured: boolean;
+    configured: boolean | null;
     total: Metric;
     used: Metric;
     free: Metric;
@@ -459,6 +459,35 @@ export interface CPUHistorySeries {
 }
 
 export type CPUHistoryResponse = APIResponse<CPUHistorySeries>;
+
+export type MemoryCurrentResponse = APIResponse<MemorySnapshot>;
+export type MemoryMetric =
+  | "total"
+  | "used"
+  | "available"
+  | "free"
+  | "cached"
+  | "buffered"
+  | "usage"
+  | "swap_total"
+  | "swap_used"
+  | "pressure_some_avg10"
+  | "pressure_full_avg10"
+  | "pressure_some_total"
+  | "pressure_full_total";
+
+export type MemoryHistoryPoint = CPUHistoryPoint;
+
+export interface MemoryHistorySeries {
+  resource: ResourceRef;
+  metric: MemoryMetric;
+  unit: "bytes" | "percent" | "microseconds";
+  range: ResolvedRange;
+  bucketDurationSeconds: number;
+  points: MemoryHistoryPoint[];
+}
+
+export type MemoryHistoryResponse = APIResponse<MemoryHistorySeries>;
 
 export type ChartPoint =
   | { timestamp: string; state: "observed"; measurement: Metric }
@@ -660,6 +689,34 @@ export function parseCPUHistoryResponse(value: unknown): CPUHistoryResponse {
     throw new ContractValidationError(problems);
   }
   return value as CPUHistoryResponse;
+}
+
+export function parseMemoryCurrentResponse(
+  value: unknown,
+): MemoryCurrentResponse {
+  const problems: string[] = [];
+  const data = validateResponseEnvelope(value, problems);
+  if (data !== undefined) {
+    validateMemorySnapshot(data, "data", problems);
+  }
+  if (problems.length > 0) {
+    throw new ContractValidationError(problems);
+  }
+  return value as MemoryCurrentResponse;
+}
+
+export function parseMemoryHistoryResponse(
+  value: unknown,
+): MemoryHistoryResponse {
+  const problems: string[] = [];
+  const data = validateResponseEnvelope(value, problems);
+  if (data !== undefined) {
+    validateMemoryHistory(data, "data", problems);
+  }
+  if (problems.length > 0) {
+    throw new ContractValidationError(problems);
+  }
+  return value as MemoryHistoryResponse;
 }
 
 export function parseOperationalStatusResponse(
@@ -889,6 +946,164 @@ function validateCPUHistory(value: unknown, path: string, problems: string[]) {
   const expectedUnit =
     value.metric === "overall" || value.metric === "core" ? "percent" : "load";
   if (value.unit !== expectedUnit) {
+    problems.push(`${path}.unit does not match metric`);
+  }
+  if (!isRecord(value.range)) {
+    problems.push(`${path}.range must be an object`);
+  } else {
+    validateUTC(value.range.start, `${path}.range.start`, problems);
+    validateUTC(value.range.end, `${path}.range.end`, problems);
+  }
+  validateNonNegativeInteger(
+    value.bucketDurationSeconds,
+    `${path}.bucketDurationSeconds`,
+    problems,
+  );
+  if (
+    typeof value.bucketDurationSeconds === "number" &&
+    value.bucketDurationSeconds < 60
+  ) {
+    problems.push(`${path}.bucketDurationSeconds must be at least 60`);
+  }
+  if (!Array.isArray(value.points)) {
+    problems.push(`${path}.points must be an array`);
+    return;
+  }
+  if (value.points.length > 600) {
+    problems.push(`${path}.points cannot exceed 600 entries`);
+  }
+  value.points.forEach((point, index) => {
+    validateCPUHistoryPoint(
+      point,
+      `${path}.points[${index}]`,
+      value.unit,
+      problems,
+    );
+  });
+}
+
+function validateMemorySnapshot(
+  value: unknown,
+  path: string,
+  problems: string[],
+) {
+  if (!isRecord(value)) {
+    problems.push(`${path} must be an object`);
+    return;
+  }
+  validateResource(value.resource, `${path}.resource`, "memory", problems);
+  validateFreshness(value.freshness, `${path}.freshness`, problems);
+  for (const field of [
+    "total",
+    "used",
+    "available",
+    "free",
+    "cached",
+    "buffered",
+  ]) {
+    validateExpectedMetric(value[field], `${path}.${field}`, "bytes", problems);
+  }
+  validateExpectedMetric(value.usage, `${path}.usage`, "percent", problems);
+  if (!isRecord(value.swap)) {
+    problems.push(`${path}.swap must be an object`);
+  } else {
+    if (
+      value.swap.configured !== null &&
+      typeof value.swap.configured !== "boolean"
+    ) {
+      problems.push(`${path}.swap.configured must be boolean or null`);
+    }
+    for (const field of ["total", "used", "free"]) {
+      validateExpectedMetric(
+        value.swap[field],
+        `${path}.swap.${field}`,
+        "bytes",
+        problems,
+      );
+    }
+  }
+  if (!isRecord(value.pressure)) {
+    problems.push(`${path}.pressure must be an object`);
+  } else {
+    validatePressureWindow(
+      value.pressure.some,
+      `${path}.pressure.some`,
+      problems,
+    );
+    validatePressureWindow(
+      value.pressure.full,
+      `${path}.pressure.full`,
+      problems,
+    );
+  }
+}
+
+function validatePressureWindow(
+  value: unknown,
+  path: string,
+  problems: string[],
+) {
+  if (!isRecord(value)) {
+    problems.push(`${path} must be an object`);
+    return;
+  }
+  validateExpectedMetric(
+    value.average10Seconds,
+    `${path}.average10Seconds`,
+    "percent",
+    problems,
+  );
+  validateExpectedMetric(
+    value.average60Seconds,
+    `${path}.average60Seconds`,
+    "percent",
+    problems,
+  );
+  validateExpectedMetric(
+    value.average300Seconds,
+    `${path}.average300Seconds`,
+    "percent",
+    problems,
+  );
+  validateExpectedMetric(
+    value.total,
+    `${path}.total`,
+    "microseconds",
+    problems,
+  );
+}
+
+function validateMemoryHistory(
+  value: unknown,
+  path: string,
+  problems: string[],
+) {
+  if (!isRecord(value)) {
+    problems.push(`${path} must be an object`);
+    return;
+  }
+  validateResource(value.resource, `${path}.resource`, "memory", problems);
+  const units = new Map<MemoryMetric, Unit>([
+    ["total", "bytes"],
+    ["used", "bytes"],
+    ["available", "bytes"],
+    ["free", "bytes"],
+    ["cached", "bytes"],
+    ["buffered", "bytes"],
+    ["usage", "percent"],
+    ["swap_total", "bytes"],
+    ["swap_used", "bytes"],
+    ["pressure_some_avg10", "percent"],
+    ["pressure_full_avg10", "percent"],
+    ["pressure_some_total", "microseconds"],
+    ["pressure_full_total", "microseconds"],
+  ]);
+  if (
+    typeof value.metric !== "string" ||
+    !units.has(value.metric as MemoryMetric)
+  ) {
+    problems.push(`${path}.metric is invalid`);
+  } else if (value.unit !== units.get(value.metric as MemoryMetric)) {
     problems.push(`${path}.unit does not match metric`);
   }
   if (!isRecord(value.range)) {
